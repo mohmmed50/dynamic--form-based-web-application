@@ -91,6 +91,21 @@ function updateProgressIndicator() {
       });
     }
     steps[4] = totalIGSubjects > 0;
+  } else if (certVal === 'saudi') {
+    const saudiInputs = document.querySelectorAll('.saudi-achieved-input');
+    if (saudiInputs.length > 0) {
+      let allSaudiValid = true;
+      for (let i = 0; i < saudiInputs.length; i++) {
+        const val = parseFloat(saudiInputs[i].value);
+        if (saudiInputs[i].value === '' || isNaN(val) || val < 0 || val > 100) {
+          allSaudiValid = false;
+          break;
+        }
+      }
+      steps[4] = allSaudiValid;
+    } else {
+      steps[4] = false;
+    }
   } else {
     const gradeInputs = document.querySelectorAll('.grade-input');
     const weightInputs = document.querySelectorAll('.weight-input');

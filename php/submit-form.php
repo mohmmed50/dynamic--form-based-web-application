@@ -39,10 +39,32 @@ try {
     }
 
     // Basic Validation
-    $requiredFields = ['studentName', 'nationalId', 'certification', 'track', 'yearOfStudy', 'photo', 'grades'];
+    $requiredFields = ['studentName', 'nationalId', 'certification', 'track', 'photo'];
     foreach ($requiredFields as $field) {
         if (!isset($data[$field]) || empty($data[$field])) {
             throw new Exception("الحقل المطلوب ناقص: " . $field);
+        }
+    }
+
+    // Certificate-specific validation
+    $cert = $data['certification'];
+    if (strpos($cert, 'سعودية') !== false || $data['certification'] === 'Saudi Certificate') {
+        if (!isset($data['yearsCount']) || empty($data['yearsCount'])) {
+            throw new Exception("الحقل المطلوب ناقص: yearsCount");
+        }
+        if (!isset($data['years']) || !is_array($data['years'])) {
+            throw new Exception("الحقل المطلوب ناقص أو غير صالح: years");
+        }
+    } elseif (strpos($cert, 'IG') !== false) {
+        if (!isset($data['grades']) || empty($data['grades'])) {
+            throw new Exception("الحقل المطلوب ناقص: grades");
+        }
+    } else {
+        if (!isset($data['yearOfStudy']) || empty($data['yearOfStudy'])) {
+            throw new Exception("الحقل المطلوب ناقص: yearOfStudy");
+        }
+        if (!isset($data['grades']) || !is_array($data['grades'])) {
+            throw new Exception("الحقل المطلوب ناقص: grades");
         }
     }
 

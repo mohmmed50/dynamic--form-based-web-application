@@ -206,21 +206,46 @@ function adjustYearSelect(certKey) {
   }
 }
 
+// Get compiled Saudi blocks based on selected year (returns array of year-by-year blocks)
+function getSaudiBlocks(yearVal) {
+  const b1 = saudiConfig.block_1 || [];
+  const b2 = saudiConfig.block_2 || [];
+  const b3 = saudiConfig.block_3 || [];
+  
+  const blocks = [];
+  if (yearVal === 'One Year' || yearVal === 'Two Years' || yearVal === 'Three Years') {
+    blocks.push({
+      label: 'السنة الأولى (Year 1)',
+      key: 'Year 1',
+      subjects: JSON.parse(JSON.stringify(b1))
+    });
+  }
+  if (yearVal === 'Two Years' || yearVal === 'Three Years') {
+    blocks.push({
+      label: 'السنة الثانية (Year 2)',
+      key: 'Year 2',
+      subjects: JSON.parse(JSON.stringify(b2))
+    });
+  }
+  if (yearVal === 'Three Years') {
+    blocks.push({
+      label: 'السنة الثالثة (Year 3)',
+      key: 'Year 3',
+      subjects: JSON.parse(JSON.stringify(b3))
+    });
+  }
+  return blocks;
+}
+
 // Get compiled subjects based on certKey and selected year
 function getActiveSubjects(certKey, yearVal) {
   if (certKey === 'saudi') {
-    const b1 = saudiConfig.block_1 || [];
-    const b2 = saudiConfig.block_2 || [];
-    const b3 = saudiConfig.block_3 || [];
-    
-    if (yearVal === 'One Year') {
-      return JSON.parse(JSON.stringify(b1));
-    } else if (yearVal === 'Two Years') {
-      return JSON.parse(JSON.stringify(b1.concat(b2)));
-    } else if (yearVal === 'Three Years') {
-      return JSON.parse(JSON.stringify(b1.concat(b2, b3)));
-    }
-    return [];
+    const blocks = getSaudiBlocks(yearVal);
+    let allSubjects = [];
+    blocks.forEach(b => {
+      allSubjects = allSubjects.concat(b.subjects);
+    });
+    return allSubjects;
   } else {
     let subjectsList = [];
     if (yearVal === 'أولى ثانوي') {

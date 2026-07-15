@@ -134,21 +134,28 @@
 
         <!-- Standard Grades Table (Non-IG) -->
         <div id="non-ig-grades-container">
-          <div class="table-responsive">
-            <table class="grades-table">
-              <thead>
-                <tr>
-                  <th class="col-num" id="th-num">#</th>
-                  <th class="col-subject" id="th-subject">اسم المادة</th>
-                  <th class="col-grade" id="th-grade">الدرجة</th>
-                  <th class="col-weight" id="th-weight">الوزن النسبي (%)</th>
-                  <th class="col-achieved" id="th-achieved">الدرجة المتحصلة</th>
-                </tr>
-              </thead>
-              <tbody id="grades-table-body">
-                <!-- Dynamically Populated -->
-              </tbody>
-            </table>
+          <div id="standard-table-wrapper">
+            <div class="table-responsive">
+              <table class="grades-table">
+                <thead>
+                  <tr>
+                    <th class="col-num" id="th-num">#</th>
+                    <th class="col-subject" id="th-subject">اسم المادة</th>
+                    <th class="col-grade" id="th-grade">الدرجة</th>
+                    <th class="col-weight" id="th-weight">الوزن النسبي (%)</th>
+                    <th class="col-achieved" id="th-achieved">الدرجة المتحصلة</th>
+                  </tr>
+                </thead>
+                <tbody id="grades-table-body">
+                  <!-- Dynamically Populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Saudi Year-by-Year split tables container -->
+          <div id="saudi-multi-tables-container" style="display: none;">
+            <!-- Dynamically populated year cards -->
           </div>
 
           <!-- Saudi Certificate Summary Box -->

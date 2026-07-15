@@ -115,20 +115,14 @@ function initImageUpload() {
 
 // 2. Grades Table Generator
 function generateGradesTable(yearVal) {
+  const standardWrapper = document.getElementById('standard-table-wrapper');
+  const saudiMultiContainer = document.getElementById('saudi-multi-tables-container');
   const tableBody = document.getElementById('grades-table-body');
   tableBody.innerHTML = '';
+  saudiMultiContainer.innerHTML = '';
 
   const certKey = document.getElementById('cert-select').value;
   const isSaudi = (certKey === 'saudi');
-
-  // Set table headers dynamically
-  const thGrade = document.getElementById('th-grade');
-  const thWeight = document.getElementById('th-weight');
-  const thAchieved = document.getElementById('th-achieved');
-  
-  if (thGrade) thGrade.textContent = isSaudi ? 'المعامل' : 'الدرجة';
-  if (thWeight) thWeight.textContent = isSaudi ? 'الدرجة المحرزة' : 'الوزن النسبي (%)';
-  if (thAchieved) thAchieved.textContent = isSaudi ? 'الدرجة الموزونة' : 'الدرجة المتحصلة';
 
   // Toggle Saudi Summary Box visibility
   const saudiSummaryBox = document.getElementById('saudi-summary-box');
@@ -136,47 +130,105 @@ function generateGradesTable(yearVal) {
     saudiSummaryBox.style.display = isSaudi ? 'block' : 'none';
   }
 
-  // Get active subjects
-  const subjects = typeof getActiveSubjects === 'function' ? getActiveSubjects(certKey, yearVal) : [];
+  if (isSaudi) {
+    standardWrapper.style.display = 'none';
+    saudiMultiContainer.style.display = 'block';
 
-  // Determine occurrences for auto-numbering duplicate names
-  const occurrenceCounts = {};
-  subjects.forEach(s => {
-    occurrenceCounts[s.name] = (occurrenceCounts[s.name] || 0) + 1;
-  });
+    const blocks = typeof getSaudiBlocks === 'function' ? getSaudiBlocks(yearVal) : [];
 
-  const currentOccurrence = {};
+    // Auto-number duplicate subjects across all blocks combined to avoid user confusion
+    const occurrenceCounts = {};
+    blocks.forEach(block => {
+      block.subjects.forEach(s => {
+        occurrenceCounts[s.name] = (occurrenceCounts[s.name] || 0) + 1;
+      });
+    });
 
-  subjects.forEach((subjectObj, index) => {
-    const subjectName = subjectObj.name;
-    const coefficient = subjectObj.coefficient;
-    const row = document.createElement('tr');
+    const currentOccurrence = {};
 
-    let displaySubjectName = subjectName;
-    if (occurrenceCounts[subjectName] > 1) {
-      currentOccurrence[subjectName] = (currentOccurrence[subjectName] || 0) + 1;
-      displaySubjectName = `${subjectName} (${currentOccurrence[subjectName]})`;
-    }
+    blocks.forEach((block, blockIndex) => {
+      const card = document.createElement('div');
+      card.className = 'saudi-year-card';
+      card.style.cssText = 'background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-md, 8px); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));';
+      
+      let tableRowsHtml = '';
+      block.subjects.forEach((subjectObj, subjectIndex) => {
+        const subjectName = subjectObj.name;
+        const coefficient = subjectObj.coefficient;
 
-    if (isSaudi) {
-      row.innerHTML = `
-        <td class="col-num">${index + 1}</td>
-        <td class="col-subject">${displaySubjectName}</td>
-        <td class="col-grade">
-          <input type="number" readonly value="${coefficient}" class="table-input coefficient-input" 
-                 style="background: var(--light-bg); border-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; text-align: center;">
-        </td>
-        <td class="col-weight">
-          <input type="number" min="0" max="100" step="any" required 
-                 placeholder="0-100" class="table-input saudi-achieved-input" 
-                 data-subject="${subjectName}" data-coefficient="${coefficient}">
-        </td>
-        <td class="col-achieved">0.00</td>
+        let displaySubjectName = subjectName;
+        if (occurrenceCounts[subjectName] > 1) {
+          currentOccurrence[subjectName] = (currentOccurrence[subjectName] || 0) + 1;
+          displaySubjectName = `${subjectName} (${currentOccurrence[subjectName]})`;
+        }
+
+        tableRowsHtml += `
+          <tr>
+            <td class="col-num">${subjectIndex + 1}</td>
+            <td class="col-subject">${displaySubjectName}</td>
+            <td class="col-grade" style="text-align: center;">${coefficient}</td>
+            <td class="col-weight">
+              <input type="number" min="0" max="100" step="any" required 
+                     placeholder="0-100" class="table-input saudi-achieved-input" 
+                     data-subject="${subjectName}" data-coefficient="${coefficient}">
+            </td>
+            <td class="col-achieved">0.00</td>
+          </tr>
+        `;
+      });
+
+      card.innerHTML = `
+        <h3 class="saudi-year-title" style="margin-top: 0; margin-bottom: 1rem; color: var(--primary-color); font-size: 1.15rem; font-weight: 600; border-bottom: 2px solid var(--primary-light); padding-bottom: 0.5rem;">
+          📚 ${block.label}
+        </h3>
+        <div class="table-responsive">
+          <table class="grades-table">
+            <thead>
+              <tr>
+                <th class="col-num">#</th>
+                <th class="col-subject">اسم المادة</th>
+                <th class="col-grade">المعامل</th>
+                <th class="col-weight">الدرجة المحرزة</th>
+                <th class="col-achieved">الدرجة الموزونة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRowsHtml}
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Year Subtotal Bar -->
+        <div class="saudi-subtotal-bar" id="subtotal-${block.key.replace(' ', '-')}" style="margin-top: 1rem; background: var(--light-bg, #f8fafc); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: var(--radius-sm, 6px); display: flex; flex-wrap: wrap; justify-content: space-between; font-size: 0.9rem; font-weight: 600;">
+          <div>مجموع الدرجات المحرزة: <span class="sub-achieved" style="color: var(--primary-color);">0.00</span></div>
+          <div>مجموع المعاملات: <span class="sub-coefficients" style="color: var(--primary-color);">0</span></div>
+          <div>المجموع الموزون: <span class="sub-weighted" style="color: var(--primary-color);">0.00</span></div>
+        </div>
       `;
-    } else {
+      saudiMultiContainer.appendChild(card);
+    });
+
+  } else {
+    standardWrapper.style.display = 'block';
+    saudiMultiContainer.style.display = 'none';
+
+    // Set table headers dynamically
+    const thGrade = document.getElementById('th-grade');
+    const thWeight = document.getElementById('th-weight');
+    const thAchieved = document.getElementById('th-achieved');
+    
+    if (thGrade) thGrade.textContent = 'الدرجة';
+    if (thWeight) thWeight.textContent = 'النسبة الموزونة (%)';
+    if (thAchieved) thAchieved.textContent = 'الدرجة المتحصلة';
+
+    const subjects = typeof getActiveSubjects === 'function' ? getActiveSubjects(certKey, yearVal) : [];
+
+    subjects.forEach((subjectObj, index) => {
+      const subjectName = subjectObj.name;
+      const row = document.createElement('tr');
       row.innerHTML = `
         <td class="col-num">${index + 1}</td>
-        <td class="col-subject">${displaySubjectName}</td>
+        <td class="col-subject">${subjectName}</td>
         <td class="col-grade">
           <input type="number" min="0" max="100" step="any" required 
                  placeholder="0-100" class="table-input grade-input" 
@@ -188,9 +240,9 @@ function generateGradesTable(yearVal) {
         </td>
         <td class="col-achieved">0.00</td>
       `;
-    }
-    tableBody.appendChild(row);
-  });
+      tableBody.appendChild(row);
+    });
+  }
 
   // Re-bind listeners for table calculation
   setupTableCalculationListeners();
@@ -204,55 +256,79 @@ function setupTableCalculationListeners() {
   const isSaudi = (document.getElementById('cert-select').value === 'saudi');
 
   if (isSaudi) {
-    const inputs = tableBody.querySelectorAll('.saudi-achieved-input');
-    
+    const saudiMultiContainer = document.getElementById('saudi-multi-tables-container');
+    const cards = saudiMultiContainer.querySelectorAll('.saudi-year-card');
+
     const recalculateSaudi = () => {
-      let totalAchieved = 0;
-      let totalWeighted = 0;
-      let totalCoefficients = 0;
-      
-      inputs.forEach(input => {
-        const achieved = parseFloat(input.value) || 0;
-        const coefficient = parseFloat(input.getAttribute('data-coefficient')) || 0;
-        
-        if (input.value !== '' && (achieved < 0 || achieved > 100)) {
-          input.style.borderColor = 'var(--danger-color)';
-        } else {
-          input.style.borderColor = '';
-        }
-        
-        const weighted = achieved * coefficient;
-        const row = input.closest('tr');
-        const achievedDisplay = row.querySelector('.col-achieved');
-        if (achievedDisplay) {
-          achievedDisplay.textContent = weighted.toFixed(2);
-        }
-        
-        totalAchieved += achieved;
-        totalWeighted += weighted;
-        totalCoefficients += coefficient;
+      let overallAchieved = 0;
+      let overallWeighted = 0;
+      let overallCoefficients = 0;
+
+      cards.forEach(card => {
+        let cardAchieved = 0;
+        let cardWeighted = 0;
+        let cardCoefficients = 0;
+
+        const inputs = card.querySelectorAll('.saudi-achieved-input');
+        inputs.forEach(input => {
+          const achieved = parseFloat(input.value) || 0;
+          const coefficient = parseFloat(input.getAttribute('data-coefficient')) || 0;
+
+          if (input.value !== '' && (achieved < 0 || achieved > 100)) {
+            input.style.borderColor = 'var(--danger-color)';
+          } else {
+            input.style.borderColor = '';
+          }
+
+          const weighted = achieved * coefficient;
+          const row = input.closest('tr');
+          const achievedDisplay = row.querySelector('.col-achieved');
+          if (achievedDisplay) {
+            achievedDisplay.textContent = weighted.toFixed(2);
+          }
+
+          cardAchieved += achieved;
+          cardWeighted += weighted;
+          cardCoefficients += coefficient;
+        });
+
+        // Update card subtotal display
+        const subAchievedEl = card.querySelector('.sub-achieved');
+        const subCoefficientsEl = card.querySelector('.sub-coefficients');
+        const subWeightedEl = card.querySelector('.sub-weighted');
+
+        if (subAchievedEl) subAchievedEl.textContent = cardAchieved.toFixed(2);
+        if (subCoefficientsEl) subCoefficientsEl.textContent = cardCoefficients;
+        if (subWeightedEl) subWeightedEl.textContent = cardWeighted.toFixed(2);
+
+        overallAchieved += cardAchieved;
+        overallWeighted += cardWeighted;
+        overallCoefficients += cardCoefficients;
       });
-      
-      const finalGPA = totalCoefficients > 0 ? (totalWeighted / (100 * totalCoefficients)) * 100 : 0;
-      
+
+      const finalGPA = overallCoefficients > 0 ? (overallWeighted / (100 * overallCoefficients)) * 100 : 0;
+
       const elTotalAchieved = document.getElementById('saudi-total-achieved');
       const elTotalCoefficients = document.getElementById('saudi-total-coefficients');
       const elTotalWeighted = document.getElementById('saudi-total-weighted');
       const elFinalGPA = document.getElementById('saudi-final-gpa');
-      
-      if (elTotalAchieved) elTotalAchieved.textContent = totalAchieved.toFixed(2);
-      if (elTotalCoefficients) elTotalCoefficients.textContent = totalCoefficients;
-      if (elTotalWeighted) elTotalWeighted.textContent = totalWeighted.toFixed(2);
+
+      if (elTotalAchieved) elTotalAchieved.textContent = overallAchieved.toFixed(2);
+      if (elTotalCoefficients) elTotalCoefficients.textContent = overallCoefficients;
+      if (elTotalWeighted) elTotalWeighted.textContent = overallWeighted.toFixed(2);
       if (elFinalGPA) elFinalGPA.textContent = finalGPA.toFixed(2) + '%';
-      
+
       updateProgressIndicator();
     };
-    
-    inputs.forEach(input => {
-      input.addEventListener('input', recalculateSaudi);
-      input.addEventListener('change', recalculateSaudi);
+
+    cards.forEach(card => {
+      const inputs = card.querySelectorAll('.saudi-achieved-input');
+      inputs.forEach(input => {
+        input.addEventListener('input', recalculateSaudi);
+        input.addEventListener('change', recalculateSaudi);
+      });
     });
-    
+
     recalculateSaudi();
   } else {
     const rows = tableBody.querySelectorAll('tr');
@@ -744,32 +820,64 @@ function compilePayload() {
   }
 
   if (certSelect.value === 'saudi') {
-    const gradesData = [];
-    const rows = document.querySelectorAll('#grades-table-body tr');
-    let totalAchieved = 0;
-    let totalWeighted = 0;
-    let totalCoefficients = 0;
+    const yearsData = [];
+    const cards = document.querySelectorAll('#saudi-multi-tables-container .saudi-year-card');
+    let overallAchieved = 0;
+    let overallWeighted = 0;
+    let overallCoefficients = 0;
 
-    rows.forEach(row => {
-      const subjectName = row.querySelector('.col-subject').textContent;
-      const achievedInput = row.querySelector('.saudi-achieved-input');
-      const achieved = parseFloat(achievedInput.value) || 0;
-      const coefficient = parseFloat(achievedInput.getAttribute('data-coefficient')) || 0;
-      const weighted = achieved * coefficient;
+    cards.forEach(card => {
+      const yearLabelEl = card.querySelector('.saudi-year-title');
+      // Extract label and key (e.g. "Year 1" or similar)
+      const labelText = yearLabelEl ? yearLabelEl.textContent.trim().replace('📚 ', '') : 'السنة الدراسية';
+      
+      // Determine year key (e.g. "Year 1") from the subtotal element's ID
+      const subtotalEl = card.querySelector('.saudi-subtotal-bar');
+      const subtotalId = subtotalEl ? subtotalEl.id : 'subtotal-Year-1';
+      const yearKey = subtotalId.replace('subtotal-', '').replace('-', ' '); // e.g. "Year 1"
 
-      gradesData.push({
-        subjectName,
-        coefficient,
-        achieved,
-        weighted
+      const gradesData = [];
+      const rows = card.querySelectorAll('tbody tr');
+      let cardAchieved = 0;
+      let cardWeighted = 0;
+      let cardCoefficients = 0;
+
+      rows.forEach(row => {
+        const subjectName = row.querySelector('.col-subject').textContent;
+        const achievedInput = row.querySelector('.saudi-achieved-input');
+        const achieved = parseFloat(achievedInput.value) || 0;
+        const coefficient = parseFloat(achievedInput.getAttribute('data-coefficient')) || 0;
+        const weighted = achieved * coefficient;
+
+        gradesData.push({
+          subjectName,
+          coefficient,
+          achieved,
+          weighted
+        });
+
+        cardAchieved += achieved;
+        cardWeighted += weighted;
+        cardCoefficients += coefficient;
       });
 
-      totalAchieved += achieved;
-      totalWeighted += weighted;
-      totalCoefficients += coefficient;
+      yearsData.push({
+        yearLabel: yearKey,
+        yearLabelAr: labelText,
+        grades: gradesData,
+        subtotal: {
+          totalAchieved: parseFloat(cardAchieved.toFixed(2)),
+          totalWeighted: parseFloat(cardWeighted.toFixed(2)),
+          totalCoefficients: cardCoefficients
+        }
+      });
+
+      overallAchieved += cardAchieved;
+      overallWeighted += cardWeighted;
+      overallCoefficients += cardCoefficients;
     });
 
-    const finalPercentage = totalCoefficients > 0 ? (totalWeighted / (100 * totalCoefficients)) * 100 : 0;
+    const finalPercentage = overallCoefficients > 0 ? (overallWeighted / (100 * overallCoefficients)) * 100 : 0;
 
     return {
       studentName: document.getElementById('student-name').value.trim(),
@@ -778,11 +886,13 @@ function compilePayload() {
       track: trackSelect.value,
       yearsCount: document.getElementById('year-select').value,
       photo: uploadedPhotoBase64,
-      grades: gradesData,
-      totalAchieved: parseFloat(totalAchieved.toFixed(2)),
-      totalWeighted: parseFloat(totalWeighted.toFixed(2)),
-      totalCoefficients: totalCoefficients,
-      finalPercentage: parseFloat(finalPercentage.toFixed(2)),
+      years: yearsData,
+      overallTotals: {
+        totalAchieved: parseFloat(overallAchieved.toFixed(2)),
+        totalWeighted: parseFloat(overallWeighted.toFixed(2)),
+        totalCoefficients: overallCoefficients,
+        finalPercentage: parseFloat(finalPercentage.toFixed(2))
+      },
       submittedAt: new Date().toISOString()
     };
   }
@@ -891,7 +1001,7 @@ function showSuccessScreen(payload, mode, serverPath = '') {
 
     if (saudiGpaRow && saudiGpaVal) {
       saudiGpaRow.style.display = 'flex';
-      saudiGpaVal.textContent = payload.finalPercentage.toFixed(2) + '%';
+      saudiGpaVal.textContent = payload.overallTotals.finalPercentage.toFixed(2) + '%';
     }
   } else if (payload.igProgram) {
     if (programRow) {
@@ -958,16 +1068,23 @@ function downloadReceiptFile(payload, format) {
     if (payload.yearsCount) {
       csvRows.push(`مسار الدراسة,"${payload.track}"`);
       csvRows.push(`عدد سنوات الدراسة,"${payload.yearsCount}"`);
-      csvRows.push(`مجموع الدرجات المحرزة,${payload.totalAchieved}`);
-      csvRows.push(`مجموع المعاملات,${payload.totalCoefficients}`);
-      csvRows.push(`المجموع الموزون الكلي,${payload.totalWeighted}`);
-      csvRows.push(`النسبة المئوية النهائية (GPA),${payload.finalPercentage}%`);
+      csvRows.push(`مجموع الدرجات المحرزة الكلي,${payload.overallTotals.totalAchieved}`);
+      csvRows.push(`مجموع المعاملات الكلي,${payload.overallTotals.totalCoefficients}`);
+      csvRows.push(`المجموع الموزون الكلي,${payload.overallTotals.totalWeighted}`);
+      csvRows.push(`النسبة المئوية النهائية (GPA),${payload.overallTotals.finalPercentage}%`);
       csvRows.push(`تاريخ الإرسال,${payload.submittedAt}`);
       csvRows.push('');
-      csvRows.push('المادة,المعامل,الدرجة المحرزة,الدرجة الموزونة');
       
-      payload.grades.forEach(g => {
-        csvRows.push(`"${g.subjectName}",${g.coefficient},${g.achieved},${g.weighted}`);
+      payload.years.forEach(yr => {
+        csvRows.push(`-- ${yr.yearLabelAr} --`);
+        csvRows.push('المادة,المعامل,الدرجة المحرزة,الدرجة الموزونة');
+        yr.grades.forEach(g => {
+          csvRows.push(`"${g.subjectName}",${g.coefficient},${g.achieved},${g.weighted}`);
+        });
+        csvRows.push(`مجموع درجات السنة,${yr.subtotal.totalAchieved}`);
+        csvRows.push(`مجموع معاملات السنة,${yr.subtotal.totalCoefficients}`);
+        csvRows.push(`مجموع موزون السنة,${yr.subtotal.totalWeighted}`);
+        csvRows.push('');
       });
     } else if (payload.igProgram) {
       csvRows.push(`برنامج الـ IG,"${payload.track}"`);
