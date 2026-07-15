@@ -118,32 +118,77 @@ function generateGradesTable(yearVal) {
   const tableBody = document.getElementById('grades-table-body');
   tableBody.innerHTML = '';
 
-  let yearKey = 'year_1';
-  if (yearVal === 'تانية ثانوي') {
-    yearKey = 'year_2';
-  } else if (yearVal === 'تالتة ثانوي') {
-    yearKey = 'year_3';
+  const certKey = document.getElementById('cert-select').value;
+  const isSaudi = (certKey === 'saudi');
+
+  // Set table headers dynamically
+  const thGrade = document.getElementById('th-grade');
+  const thWeight = document.getElementById('th-weight');
+  const thAchieved = document.getElementById('th-achieved');
+  
+  if (thGrade) thGrade.textContent = isSaudi ? 'المعامل' : 'الدرجة';
+  if (thWeight) thWeight.textContent = isSaudi ? 'الدرجة المحرزة' : 'الوزن النسبي (%)';
+  if (thAchieved) thAchieved.textContent = isSaudi ? 'الدرجة الموزونة' : 'الدرجة المتحصلة';
+
+  // Toggle Saudi Summary Box visibility
+  const saudiSummaryBox = document.getElementById('saudi-summary-box');
+  if (saudiSummaryBox) {
+    saudiSummaryBox.style.display = isSaudi ? 'block' : 'none';
   }
 
-  // Get subjects list
-  const subjects = appConfig.subjects[yearKey] || appConfig.subjects.year_1;
+  // Get active subjects
+  const subjects = typeof getActiveSubjects === 'function' ? getActiveSubjects(certKey, yearVal) : [];
 
-  subjects.forEach((subjectName, index) => {
+  // Determine occurrences for auto-numbering duplicate names
+  const occurrenceCounts = {};
+  subjects.forEach(s => {
+    occurrenceCounts[s.name] = (occurrenceCounts[s.name] || 0) + 1;
+  });
+
+  const currentOccurrence = {};
+
+  subjects.forEach((subjectObj, index) => {
+    const subjectName = subjectObj.name;
+    const coefficient = subjectObj.coefficient;
     const row = document.createElement('tr');
-    row.innerHTML = `
-      <td class="col-num">${index + 1}</td>
-      <td class="col-subject">${subjectName}</td>
-      <td class="col-grade">
-        <input type="number" min="0" max="100" step="any" required 
-               placeholder="0-100" class="table-input grade-input" 
-               data-subject="${subjectName}">
-      </td>
-      <td class="col-weight">
-        <input type="number" min="0" max="100" step="any" required 
-               placeholder="0-100" class="table-input weight-input">
-      </td>
-      <td class="col-achieved" id="achieved-val-${index}">0.00</td>
-    `;
+
+    let displaySubjectName = subjectName;
+    if (occurrenceCounts[subjectName] > 1) {
+      currentOccurrence[subjectName] = (currentOccurrence[subjectName] || 0) + 1;
+      displaySubjectName = `${subjectName} (${currentOccurrence[subjectName]})`;
+    }
+
+    if (isSaudi) {
+      row.innerHTML = `
+        <td class="col-num">${index + 1}</td>
+        <td class="col-subject">${displaySubjectName}</td>
+        <td class="col-grade">
+          <input type="number" readonly value="${coefficient}" class="table-input coefficient-input" 
+                 style="background: var(--light-bg); border-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; text-align: center;">
+        </td>
+        <td class="col-weight">
+          <input type="number" min="0" max="100" step="any" required 
+                 placeholder="0-100" class="table-input saudi-achieved-input" 
+                 data-subject="${subjectName}" data-coefficient="${coefficient}">
+        </td>
+        <td class="col-achieved">0.00</td>
+      `;
+    } else {
+      row.innerHTML = `
+        <td class="col-num">${index + 1}</td>
+        <td class="col-subject">${displaySubjectName}</td>
+        <td class="col-grade">
+          <input type="number" min="0" max="100" step="any" required 
+                 placeholder="0-100" class="table-input grade-input" 
+                 data-subject="${subjectName}">
+        </td>
+        <td class="col-weight">
+          <input type="number" min="0" max="100" step="any" required 
+                 placeholder="0-100" class="table-input weight-input">
+        </td>
+        <td class="col-achieved">0.00</td>
+      `;
+    }
     tableBody.appendChild(row);
   });
 
@@ -156,40 +201,105 @@ function setupTableCalculationListeners() {
   const tableBody = document.getElementById('grades-table-body');
   if (!tableBody) return;
 
-  const rows = tableBody.querySelectorAll('tr');
+  const isSaudi = (document.getElementById('cert-select').value === 'saudi');
 
-  rows.forEach((row, index) => {
-    const gradeInput = row.querySelector('.grade-input');
-    const weightInput = row.querySelector('.weight-input');
-    const achievedDisplay = row.querySelector('.col-achieved');
-
-    const recalculate = () => {
-      const grade = parseFloat(gradeInput.value) || 0;
-      const weight = parseFloat(weightInput.value) || 0;
-
-      // Validate range [0 - 100]
-      if (grade < 0 || grade > 100) {
-        gradeInput.style.borderColor = 'var(--danger-color)';
-      } else {
-        gradeInput.style.borderColor = '';
-      }
-
-      if (weight < 0 || weight > 100) {
-        weightInput.style.borderColor = 'var(--danger-color)';
-      } else {
-        weightInput.style.borderColor = '';
-      }
-
-      // Calculate Achieved Grade: (Grade * Weight) / 100
-      const achieved = (grade * weight) / 100;
-      achievedDisplay.textContent = achieved.toFixed(2);
+  if (isSaudi) {
+    const inputs = tableBody.querySelectorAll('.saudi-achieved-input');
+    
+    const recalculateSaudi = () => {
+      let totalAchieved = 0;
+      let totalWeighted = 0;
+      let totalCoefficients = 0;
+      
+      inputs.forEach(input => {
+        const achieved = parseFloat(input.value) || 0;
+        const coefficient = parseFloat(input.getAttribute('data-coefficient')) || 0;
+        
+        if (input.value !== '' && (achieved < 0 || achieved > 100)) {
+          input.style.borderColor = 'var(--danger-color)';
+        } else {
+          input.style.borderColor = '';
+        }
+        
+        const weighted = achieved * coefficient;
+        const row = input.closest('tr');
+        const achievedDisplay = row.querySelector('.col-achieved');
+        if (achievedDisplay) {
+          achievedDisplay.textContent = weighted.toFixed(2);
+        }
+        
+        totalAchieved += achieved;
+        totalWeighted += weighted;
+        totalCoefficients += coefficient;
+      });
+      
+      const finalGPA = totalCoefficients > 0 ? (totalWeighted / (100 * totalCoefficients)) * 100 : 0;
+      
+      const elTotalAchieved = document.getElementById('saudi-total-achieved');
+      const elTotalCoefficients = document.getElementById('saudi-total-coefficients');
+      const elTotalWeighted = document.getElementById('saudi-total-weighted');
+      const elFinalGPA = document.getElementById('saudi-final-gpa');
+      
+      if (elTotalAchieved) elTotalAchieved.textContent = totalAchieved.toFixed(2);
+      if (elTotalCoefficients) elTotalCoefficients.textContent = totalCoefficients;
+      if (elTotalWeighted) elTotalWeighted.textContent = totalWeighted.toFixed(2);
+      if (elFinalGPA) elFinalGPA.textContent = finalGPA.toFixed(2) + '%';
+      
+      updateProgressIndicator();
     };
-
-    gradeInput.addEventListener('input', recalculate);
-    weightInput.addEventListener('input', recalculate);
-    gradeInput.addEventListener('blur', recalculate);
-    weightInput.addEventListener('blur', recalculate);
-  });
+    
+    inputs.forEach(input => {
+      input.addEventListener('input', recalculateSaudi);
+      input.addEventListener('change', recalculateSaudi);
+    });
+    
+    recalculateSaudi();
+  } else {
+    const rows = tableBody.querySelectorAll('tr');
+    
+    const recalculateStandard = () => {
+      rows.forEach(row => {
+        const gradeInput = row.querySelector('.grade-input');
+        const weightInput = row.querySelector('.weight-input');
+        const achievedDisplay = row.querySelector('.col-achieved');
+        
+        if (gradeInput && weightInput && achievedDisplay) {
+          const grade = parseFloat(gradeInput.value) || 0;
+          const weight = parseFloat(weightInput.value) || 0;
+          
+          if (gradeInput.value !== '' && (grade < 0 || grade > 100)) {
+            gradeInput.style.borderColor = 'var(--danger-color)';
+          } else {
+            gradeInput.style.borderColor = '';
+          }
+          
+          if (weightInput.value !== '' && (weight < 0 || weight > 100)) {
+            weightInput.style.borderColor = 'var(--danger-color)';
+          } else {
+            weightInput.style.borderColor = '';
+          }
+          
+          const achieved = (grade * weight) / 100;
+          achievedDisplay.textContent = achieved.toFixed(2);
+        }
+      });
+      
+      updateProgressIndicator();
+    };
+    
+    rows.forEach(row => {
+      const gradeInput = row.querySelector('.grade-input');
+      const weightInput = row.querySelector('.weight-input');
+      if (gradeInput && weightInput) {
+        gradeInput.addEventListener('input', recalculateStandard);
+        gradeInput.addEventListener('blur', recalculateStandard);
+        weightInput.addEventListener('input', recalculateStandard);
+        weightInput.addEventListener('blur', recalculateStandard);
+      }
+    });
+    
+    recalculateStandard();
+  }
 }
 
 // 3b. IG Calculator Calculation and Helpers
@@ -489,7 +599,40 @@ function validateForm() {
     return { valid: true };
   }
 
-  // 6. Year of Study (Non-IG)
+  // Check if Saudi Cert is active
+  if (certSelect.value === 'saudi') {
+    const yearSelect = document.getElementById('year-select');
+    if (!yearSelect.value) {
+      return {
+        valid: false,
+        message: 'الرجاء اختيار عدد سنوات الدراسة التراكمية.',
+        element: yearSelect
+      };
+    }
+
+    const saudiInputs = document.querySelectorAll('.saudi-achieved-input');
+    if (saudiInputs.length === 0) {
+      return {
+        valid: false,
+        message: 'الرجاء توليد جدول المواد أولاً.',
+        element: yearSelect
+      };
+    }
+    
+    for (let i = 0; i < saudiInputs.length; i++) {
+      const val = parseFloat(saudiInputs[i].value);
+      if (saudiInputs[i].value === '' || isNaN(val) || val < 0 || val > 100) {
+        return {
+          valid: false,
+          message: 'الرجاء إدخال درجة محرزة صحيحة بين 0 و 100 لجميع المواد.',
+          element: saudiInputs[i]
+        };
+      }
+    }
+    return { valid: true };
+  }
+
+  // 6. Year of Study (Non-IG, Non-Saudi)
   const yearSelect = document.getElementById('year-select');
   if (!yearSelect.value) {
     return {
@@ -499,7 +642,7 @@ function validateForm() {
     };
   }
 
-  // 7. Table Inputs (Non-IG)
+  // 7. Table Inputs (Non-IG, Non-Saudi)
   const gradeInputs = document.querySelectorAll('.grade-input');
   const weightInputs = document.querySelectorAll('.weight-input');
 
@@ -600,6 +743,50 @@ function compilePayload() {
     };
   }
 
+  if (certSelect.value === 'saudi') {
+    const gradesData = [];
+    const rows = document.querySelectorAll('#grades-table-body tr');
+    let totalAchieved = 0;
+    let totalWeighted = 0;
+    let totalCoefficients = 0;
+
+    rows.forEach(row => {
+      const subjectName = row.querySelector('.col-subject').textContent;
+      const achievedInput = row.querySelector('.saudi-achieved-input');
+      const achieved = parseFloat(achievedInput.value) || 0;
+      const coefficient = parseFloat(achievedInput.getAttribute('data-coefficient')) || 0;
+      const weighted = achieved * coefficient;
+
+      gradesData.push({
+        subjectName,
+        coefficient,
+        achieved,
+        weighted
+      });
+
+      totalAchieved += achieved;
+      totalWeighted += weighted;
+      totalCoefficients += coefficient;
+    });
+
+    const finalPercentage = totalCoefficients > 0 ? (totalWeighted / (100 * totalCoefficients)) * 100 : 0;
+
+    return {
+      studentName: document.getElementById('student-name').value.trim(),
+      nationalId: document.getElementById('national-id').value.trim(),
+      certification: certSelect.options[certSelect.selectedIndex].text,
+      track: trackSelect.value,
+      yearsCount: document.getElementById('year-select').value,
+      photo: uploadedPhotoBase64,
+      grades: gradesData,
+      totalAchieved: parseFloat(totalAchieved.toFixed(2)),
+      totalWeighted: parseFloat(totalWeighted.toFixed(2)),
+      totalCoefficients: totalCoefficients,
+      finalPercentage: parseFloat(finalPercentage.toFixed(2)),
+      submittedAt: new Date().toISOString()
+    };
+  }
+
   const grades = [];
   const rows = document.querySelectorAll('#grades-table-body tr');
 
@@ -685,14 +872,42 @@ function showSuccessScreen(payload, mode, serverPath = '') {
   document.getElementById('receipt-id').textContent = payload.nationalId;
   document.getElementById('receipt-cert').textContent = payload.certification;
   
-  if (payload.igProgram) {
-    document.getElementById('receipt-program-row').style.display = 'flex';
-    document.getElementById('receipt-year-row').style.display = 'none';
-    document.getElementById('receipt-program').textContent = payload.track;
+  const programRow = document.getElementById('receipt-program-row');
+  const yearRow = document.getElementById('receipt-year-row');
+  const yearLabel = document.getElementById('receipt-year-label');
+  const saudiGpaRow = document.getElementById('receipt-saudi-gpa-row');
+  const saudiGpaVal = document.getElementById('receipt-saudi-gpa');
+
+  if (payload.yearsCount) {
+    if (programRow) programRow.style.display = 'none';
+    if (yearRow) yearRow.style.display = 'flex';
+    if (yearLabel) yearLabel.textContent = 'عدد سنوات الدراسة:';
+    
+    let yearsText = payload.yearsCount;
+    if (payload.yearsCount === 'One Year') yearsText = 'سنة واحدة';
+    else if (payload.yearsCount === 'Two Years') yearsText = 'سنتان';
+    else if (payload.yearsCount === 'Three Years') yearsText = 'ثلاث سنوات';
+    document.getElementById('receipt-year').textContent = yearsText;
+
+    if (saudiGpaRow && saudiGpaVal) {
+      saudiGpaRow.style.display = 'flex';
+      saudiGpaVal.textContent = payload.finalPercentage.toFixed(2) + '%';
+    }
+  } else if (payload.igProgram) {
+    if (programRow) {
+      programRow.style.display = 'flex';
+      document.getElementById('receipt-program').textContent = payload.track;
+    }
+    if (yearRow) yearRow.style.display = 'none';
+    if (saudiGpaRow) saudiGpaRow.style.display = 'none';
   } else {
-    document.getElementById('receipt-program-row').style.display = 'none';
-    document.getElementById('receipt-year-row').style.display = 'flex';
-    document.getElementById('receipt-year').textContent = payload.yearOfStudy;
+    if (programRow) programRow.style.display = 'none';
+    if (yearRow) {
+      yearRow.style.display = 'flex';
+      if (yearLabel) yearLabel.textContent = 'السنة الدراسية:';
+      document.getElementById('receipt-year').textContent = payload.yearOfStudy;
+    }
+    if (saudiGpaRow) saudiGpaRow.style.display = 'none';
   }
 
   const modeBadge = document.getElementById('receipt-mode');
@@ -740,7 +955,21 @@ function downloadReceiptFile(payload, format) {
     csvRows.push(`الرقم القومي,${payload.nationalId}`);
     csvRows.push(`نوع الشهادة,"${payload.certification}"`);
     
-    if (payload.igProgram) {
+    if (payload.yearsCount) {
+      csvRows.push(`مسار الدراسة,"${payload.track}"`);
+      csvRows.push(`عدد سنوات الدراسة,"${payload.yearsCount}"`);
+      csvRows.push(`مجموع الدرجات المحرزة,${payload.totalAchieved}`);
+      csvRows.push(`مجموع المعاملات,${payload.totalCoefficients}`);
+      csvRows.push(`المجموع الموزون الكلي,${payload.totalWeighted}`);
+      csvRows.push(`النسبة المئوية النهائية (GPA),${payload.finalPercentage}%`);
+      csvRows.push(`تاريخ الإرسال,${payload.submittedAt}`);
+      csvRows.push('');
+      csvRows.push('المادة,المعامل,الدرجة المحرزة,الدرجة الموزونة');
+      
+      payload.grades.forEach(g => {
+        csvRows.push(`"${g.subjectName}",${g.coefficient},${g.achieved},${g.weighted}`);
+      });
+    } else if (payload.igProgram) {
       csvRows.push(`برنامج الـ IG,"${payload.track}"`);
       csvRows.push(`نوع البرنامج,"${payload.igProgram}"`);
       csvRows.push(`تطبيق المعامل النسبي,${payload.factor}`);

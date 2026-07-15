@@ -76,9 +76,87 @@ const subjectsFallback = {
   }
 };
 
-let appConfig = subjectsFallback;
+const saudiSubjectsFallback = {
+  "block_1": [
+    { "name": "مصادر المعلومات والبحث", "coefficient": 3 },
+    { "name": "الفيزياء", "coefficient": 5 },
+    { "name": "الرياضيات", "coefficient": 4 },
+    { "name": "الجغرافيا", "coefficient": 3 },
+    { "name": "الكيمياء", "coefficient": 5 },
+    { "name": "اللغة الإنجليزية", "coefficient": 4 },
+    { "name": "التقنية الرقمية", "coefficient": 3 },
+    { "name": "التنمية المستدامة", "coefficient": 3 },
+    { "name": "الفيزياء", "coefficient": 5 },
+    { "name": "المهارات الحياتية", "coefficient": 3 },
+    { "name": "الرياضيات", "coefficient": 4 },
+    { "name": "المواطنة الرقمية", "coefficient": 3 },
+    { "name": "اللغة الإنجليزية", "coefficient": 4 },
+    { "name": "علم الأرض والفضاء", "coefficient": 4 },
+    { "name": "التنمية المستدامة", "coefficient": 4 },
+    { "name": "الفقه", "coefficient": 3 },
+    { "name": "الفيزياء", "coefficient": 5 },
+    { "name": "الرياضيات", "coefficient": 4 },
+    { "name": "التربية الصحية والبدنية", "coefficient": 4 },
+    { "name": "الدراسات النفسية والاجتماعية", "coefficient": 3 },
+    { "name": "اللغة الإنجليزية", "coefficient": 5 },
+    { "name": "علم الأرض والفضاء", "coefficient": 4 },
+    { "name": "الدراسات الأدبية", "coefficient": 3 },
+    { "name": "التنمية المستدامة", "coefficient": 3 }
+  ],
+  "block_2": [
+    { "name": "علم الأحياء", "coefficient": 4 },
+    { "name": "التربية البدنية والدفاع عن النفس", "coefficient": 5 },
+    { "name": "اللياقة والثقافة الصحية", "coefficient": 5 },
+    { "name": "الفنون", "coefficient": 3 },
+    { "name": "الكيمياء", "coefficient": 5 },
+    { "name": "اللغة الإنجليزية", "coefficient": 5 },
+    { "name": "التوحيد", "coefficient": 5 },
+    { "name": "الكفايات اللغوية", "coefficient": 3 },
+    { "name": "التاريخ", "coefficient": 5 },
+    { "name": "علم الأحياء", "coefficient": 4 },
+    { "name": "التربية البدنية والدفاع عن النفس", "coefficient": 5 },
+    { "name": "الكيمياء", "coefficient": 5 },
+    { "name": "اللغة الإنجليزية", "coefficient": 5 },
+    { "name": "التقنية الرقمية", "coefficient": 3 },
+    { "name": "الفيزياء", "coefficient": 5 },
+    { "name": "الكفايات اللغوية", "coefficient": 3 },
+    { "name": "علم الأحياء", "coefficient": 4 },
+    { "name": "التربية البدنية والدفاع عن النفس", "coefficient": 5 },
+    { "name": "الكيمياء", "coefficient": 5 },
+    { "name": "اللغة الإنجليزية", "coefficient": 5 },
+    { "name": "التقنية الرقمية", "coefficient": 3 }
+  ],
+  "block_3": [
+    { "name": "القرآن الكريم والتفسير", "coefficient": 4 },
+    { "name": "الكفايات اللغوية", "coefficient": 5 },
+    { "name": "علم الأحياء", "coefficient": 5 },
+    { "name": "التربية البدنية والدفاع عن النفس", "coefficient": 5 },
+    { "name": "اللغة الإنجليزية", "coefficient": 5 },
+    { "name": "التقنية الرقمية", "coefficient": 3 },
+    { "name": "التفكير الناقد", "coefficient": 4 },
+    { "name": "الفيزياء", "coefficient": 5 },
+    { "name": "علم البيئة", "coefficient": 3 },
+    { "name": "الكفايات اللغوية", "coefficient": 5 },
+    { "name": "الرياضيات", "coefficient": 5 },
+    { "name": "التربية الصحية والبدنية", "coefficient": 3 },
+    { "name": "اللغة الإنجليزية", "coefficient": 5 },
+    { "name": "التقنية الرقمية", "coefficient": 3 },
+    { "name": "التربية المهنية", "coefficient": 3 },
+    { "name": "علم البيئة", "coefficient": 3 },
+    { "name": "الرياضيات", "coefficient": 5 },
+    { "name": "الدراسات الاجتماعية", "coefficient": 5 },
+    { "name": "التربية الصحية والبدنية", "coefficient": 3 },
+    { "name": "الكيمياء", "coefficient": 5 },
+    { "name": "اللغة الإنجليزية", "coefficient": 5 },
+    { "name": "التقنية الرقمية", "coefficient": 3 },
+    { "name": "الحديث والثقافة الإسلامية", "coefficient": 3 }
+  ]
+};
 
-// Fetch config from data/subjects.json
+let appConfig = subjectsFallback;
+let saudiConfig = saudiSubjectsFallback;
+
+// Fetch config from data/subjects.json and data/subjects_saudi.json
 async function loadSubjectsConfig() {
   try {
     const response = await fetch('data/subjects.json');
@@ -88,6 +166,71 @@ async function loadSubjectsConfig() {
     }
   } catch (error) {
     console.warn('Failed to load JSON data. Using fallback local configuration objects.', error);
+  }
+
+  try {
+    const response = await fetch('data/subjects_saudi.json');
+    if (response.ok) {
+      saudiConfig = await response.json();
+      console.log('Successfully loaded Saudi subjects configuration from JSON.');
+    }
+  } catch (error) {
+    console.warn('Failed to load Saudi JSON data. Using fallback local configuration objects.', error);
+  }
+}
+
+// Adjust Section E (Year Selection) options and labels based on certKey
+function adjustYearSelect(certKey) {
+  const yearSelect = document.getElementById('year-select');
+  const titleEl = document.querySelector('#section-year .section-title');
+  const descEl = document.querySelector('#section-year .section-desc');
+
+  if (certKey === 'saudi') {
+    yearSelect.innerHTML = `
+      <option value="">-- اختر --</option>
+      <option value="One Year">سنة واحدة (24 مادة)</option>
+      <option value="Two Years">سنتان (45 مادة)</option>
+      <option value="Three Years">ثلاث سنوات (68 مادة)</option>
+    `;
+    if (titleEl) titleEl.textContent = 'عدد سنوات الدراسة التراكمية';
+    if (descEl) descEl.textContent = 'الرجاء اختيار عدد سنوات الدراسة التراكمية التي تريد احتسابها للمعدل.';
+  } else {
+    yearSelect.innerHTML = `
+      <option value="">-- اختر --</option>
+      <option value="أولى ثانوي">أولى ثانوي</option>
+      <option value="تانية ثانوي">تانية ثانوي</option>
+      <option value="تالتة ثانوي">تالتة ثانوي</option>
+    `;
+    if (titleEl) titleEl.textContent = 'ما هي السنة الدراسية؟';
+    if (descEl) descEl.textContent = 'الرجاء اختيار السنة الدراسية الحالية للطالب.';
+  }
+}
+
+// Get compiled subjects based on certKey and selected year
+function getActiveSubjects(certKey, yearVal) {
+  if (certKey === 'saudi') {
+    const b1 = saudiConfig.block_1 || [];
+    const b2 = saudiConfig.block_2 || [];
+    const b3 = saudiConfig.block_3 || [];
+    
+    if (yearVal === 'One Year') {
+      return JSON.parse(JSON.stringify(b1));
+    } else if (yearVal === 'Two Years') {
+      return JSON.parse(JSON.stringify(b1.concat(b2)));
+    } else if (yearVal === 'Three Years') {
+      return JSON.parse(JSON.stringify(b1.concat(b2, b3)));
+    }
+    return [];
+  } else {
+    let subjectsList = [];
+    if (yearVal === 'أولى ثانوي') {
+      subjectsList = appConfig.subjects.year_1 || [];
+    } else if (yearVal === 'تانية ثانوي') {
+      subjectsList = appConfig.subjects.year_2 || [];
+    } else if (yearVal === 'تالتة ثانوي') {
+      subjectsList = appConfig.subjects.year_3 || [];
+    }
+    return subjectsList.map(name => ({ name: name, coefficient: null }));
   }
 }
 
@@ -104,7 +247,6 @@ function initConditionals() {
   });
 
   function populateCertifications() {
-    // Clear and populate certs
     certSelect.innerHTML = '<option value="">-- اختر --</option>';
     Object.keys(appConfig.certifications).forEach(key => {
       const option = document.createElement('option');
@@ -124,6 +266,7 @@ function initConditionals() {
     trackSelect.value = '';
     trackLockedIndicator.style.display = 'none';
 
+    adjustYearSelect(certKey);
     yearSelect.value = '';
     
     // Hide following sections
@@ -171,15 +314,12 @@ function initConditionals() {
     const certKey = certSelect.value;
 
     if (trackVal) {
-      // Lock track select (as per brief requirement)
       trackSelect.disabled = true;
       trackLockedIndicator.style.display = 'flex';
       
       if (certKey === 'ig') {
-        // Direct transition for IG (skip Years of Study)
         activateSection('section-grades');
         
-        // Show correct IG Subsystem based on selected track
         document.getElementById('ig-sub-igcse').style.display = 'none';
         document.getElementById('ig-sub-as').style.display = 'none';
         document.getElementById('ig-sub-a').style.display = 'none';
@@ -196,7 +336,6 @@ function initConditionals() {
           calculateIGScore();
         }
       } else {
-        // Regular flow (show year selection section)
         yearSelect.value = '';
         activateSection('section-year');
       }
@@ -213,7 +352,6 @@ function initConditionals() {
     const yearVal = this.value;
 
     if (yearVal) {
-      // Generate the grades entry table based on selection
       generateGradesTable(yearVal);
       activateSection('section-grades');
     } else {

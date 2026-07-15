@@ -138,17 +138,39 @@
             <table class="grades-table">
               <thead>
                 <tr>
-                  <th class="col-num">#</th>
-                  <th class="col-subject">اسم المادة</th>
-                  <th class="col-grade">الدرجة</th>
-                  <th class="col-weight">الوزن النسبي (%)</th>
-                  <th class="col-achieved">الدرجة المتحصلة</th>
+                  <th class="col-num" id="th-num">#</th>
+                  <th class="col-subject" id="th-subject">اسم المادة</th>
+                  <th class="col-grade" id="th-grade">الدرجة</th>
+                  <th class="col-weight" id="th-weight">الوزن النسبي (%)</th>
+                  <th class="col-achieved" id="th-achieved">الدرجة المتحصلة</th>
                 </tr>
               </thead>
               <tbody id="grades-table-body">
                 <!-- Dynamically Populated -->
               </tbody>
             </table>
+          </div>
+
+          <!-- Saudi Certificate Summary Box -->
+          <div id="saudi-summary-box" style="display: none; margin-top: 1.5rem; background: var(--primary-light); border: 1px solid var(--primary-border); padding: 1.5rem; border-radius: var(--radius-md);">
+            <div class="result-row-flex">
+              <div class="result-flex-item">
+                <div class="result-title-label">مجموع الدرجات المحرزة:</div>
+                <div class="result-value" id="saudi-total-achieved">0</div>
+              </div>
+              <div class="result-flex-item">
+                <div class="result-title-label">مجموع المعاملات:</div>
+                <div class="result-value" id="saudi-total-coefficients">0</div>
+              </div>
+              <div class="result-flex-item">
+                <div class="result-title-label">المجموع الموزون الكلي:</div>
+                <div class="result-value" id="saudi-total-weighted">0</div>
+              </div>
+              <div class="result-flex-item" style="border-right: 1px solid var(--primary-border); padding-right: 1rem;">
+                <div class="result-title-label">النسبة المئوية النهائية (GPA):</div>
+                <div class="result-value" id="saudi-final-gpa">0.00%</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -367,8 +389,12 @@
           <span class="receipt-val" id="receipt-program">-</span>
         </div>
         <div class="receipt-row" id="receipt-year-row">
-          <span class="receipt-label">السنة الدراسية:</span>
+          <span class="receipt-label" id="receipt-year-label">السنة الدراسية:</span>
           <span class="receipt-val" id="receipt-year">-</span>
+        </div>
+        <div class="receipt-row" id="receipt-saudi-gpa-row" style="display: none;">
+          <span class="receipt-label">النسبة المئوية النهائية (GPA):</span>
+          <span class="receipt-val" id="receipt-saudi-gpa">-</span>
         </div>
       </div>
 
