@@ -157,17 +157,9 @@ body {
   margin-bottom: 1.5rem;
   box-shadow: var(--shadow-md);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  transform: translateY(10px);
-  opacity: 0.35;
-  pointer-events: none;
-  filter: grayscale(80%) blur(0.3px);
 }
 
 .form-section.active {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-  filter: none;
   box-shadow: var(--shadow-premium);
   border-color: var(--primary-border);
 }
@@ -297,6 +289,89 @@ body {
   background: #fef3c7;
   color: var(--accent-color);
   border: 1px solid #fde68a;
+}
+
+/* Info Cards - Grouped sub-sections */
+.info-card {
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.info-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--primary-color), #2dd4bf);
+  border-radius: 0 0 0 4px;
+}
+
+.info-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.info-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.info-card-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  background: var(--primary-light);
+  border: 1px solid var(--primary-border);
+  padding: 0.3rem 0.85rem;
+  border-radius: 50px;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.info-card-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.field-icon {
+  font-size: 0.9rem;
+  margin-left: 0.25rem;
+}
+
+/* Full-width field inside grid */
+.form-group-full {
+  grid-column: 1 / -1;
+}
+
+/* Grid Layouts for Forms */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-grid-2 .form-group,
+.form-grid-3 .form-group {
+  margin-bottom: 0;
 }
 
 /* Fields & Inputs */

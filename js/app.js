@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Watch inputs to update step indicators in real-time
 function setupProgressListeners() {
   const inputsToWatch = [
-    'student-name',
+    'student-name-ar',
     'national-id',
     'cert-select',
     'track-select',
@@ -52,8 +52,10 @@ function updateProgressIndicator() {
   }
 
   // Step 2: Personal Details
-  const nameVal = document.getElementById('student-name').value.trim();
-  const idVal = document.getElementById('national-id').value.trim();
+  const nameEl = document.getElementById('student-name-ar');
+  const nameVal = nameEl ? nameEl.value.trim() : '';
+  const idEl = document.getElementById('national-id');
+  const idVal = idEl ? idEl.value.trim() : '';
   if (nameVal && idVal.length >= 8) {
     steps[1] = true;
   }

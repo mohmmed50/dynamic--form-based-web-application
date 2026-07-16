@@ -61,16 +61,156 @@
           <span class="section-number">ب</span>
           <h2 class="section-title">البيانات الشخصية للطالب</h2>
         </div>
-        
-        <div class="form-group">
-          <label for="student-name">الاسم الكامل للطالب <span class="required">*</span></label>
-          <input type="text" id="student-name" class="form-control" placeholder="أدخل اسم الطالب كاملاً" required maxlength="100">
+
+        <!-- Sub-card: Student Info -->
+        <div class="info-card">
+          <div class="info-card-header">
+            <div class="info-card-label">بيانات الطالب</div>
+            <div class="info-card-subtitle">المعلومات الأساسية وبيانات التواصل</div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="student-name-ar">الاسم بالكامل عربي <span class="required">*</span></label>
+              <input type="text" id="student-name-ar" class="form-control" placeholder="مثال: محمد أحمد علي حسن" required maxlength="100">
+            </div>
+            <div class="form-group">
+              <label for="student-name-en">الاسم بالكامل انجليزي <span class="required">*</span></label>
+              <input type="text" id="student-name-en" class="form-control" placeholder="e.g. Mohamed Ahmed Ali Hassan" required maxlength="100">
+            </div>
+            <div class="form-group">
+              <label for="national-id">الرقم القومي <span class="required">*</span></label>
+              <input type="text" id="national-id" class="form-control" placeholder="أدخل الرقم القومي المكون من 14 رقم" required maxlength="14">
+            </div>
+            <div class="form-group">
+              <label for="student-phone">رقم هاتف الطالب <span class="required">*</span></label>
+              <input type="tel" id="student-phone" class="form-control" placeholder="مثال: 01xxxxxxxxx" required>
+            </div>
+            <div class="form-group form-group-full">
+              <label for="student-email">الايميل الشخصي للطالب <span class="required">*</span></label>
+              <input type="email" id="student-email" class="form-control" placeholder="example@email.com" required>
+            </div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="national-id">الرقم القومي <span class="required">*</span></label>
-          <input type="text" id="national-id" class="form-control" placeholder="أدخل الرقم القومي" required>
+        <!-- Sub-card: Guardian Info -->
+        <div class="info-card">
+          <div class="info-card-header">
+            <div class="info-card-label">بيانات ولي الأمر</div>
+            <div class="info-card-subtitle">معلومات ولي الأمر المسؤول</div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="guardian-name">اسم ولي الأمر <span class="required">*</span></label>
+              <input type="text" id="guardian-name" class="form-control" placeholder="أدخل الاسم بالكامل" required maxlength="100">
+            </div>
+            <div class="form-group">
+              <label for="guardian-relation">صلة القرابة <span class="required">*</span></label>
+              <select id="guardian-relation" class="form-control" required>
+                <option value="">-- اختر صلة القرابة --</option>
+                <optgroup label="قرابة الدرجة الأولى">
+                  <option value="الأب">الأب</option>
+                  <option value="الأم">الأم</option>
+                  <option value="الأخ">الأخ</option>
+                  <option value="الأخت">الأخت</option>
+                  <option value="الابن">الابن</option>
+                  <option value="البنت">البنت</option>
+                  <option value="الزوج">الزوج</option>
+                  <option value="الزوجة">الزوجة</option>
+                </optgroup>
+                <optgroup label="قرابة الدرجة الثانية">
+                  <option value="الجد">الجد</option>
+                  <option value="الجدة">الجدة</option>
+                  <option value="العم">العم</option>
+                  <option value="العمة">العمة</option>
+                  <option value="الخال">الخال</option>
+                  <option value="الخالة">الخالة</option>
+                  <option value="ابن العم">ابن العم</option>
+                  <option value="ابنة العم">ابنة العم</option>
+                  <option value="ابن الخال">ابن الخال</option>
+                  <option value="ابنة الخال">ابنة الخال</option>
+                  <option value="الحفيد">الحفيد</option>
+                  <option value="الحفيدة">الحفيدة</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group form-group-full">
+              <label for="guardian-phone">رقم هاتف ولي الأمر <span class="required">*</span></label>
+              <input type="tel" id="guardian-phone" class="form-control" placeholder="مثال: 01xxxxxxxxx" required>
+            </div>
+          </div>
         </div>
+
+        <!-- Sub-card: Address -->
+        <div class="info-card">
+          <div class="info-card-header">
+            <div class="info-card-label">عنوان السكن</div>
+            <div class="info-card-subtitle">الحقول المميزة بـ <span style="color:var(--danger-color)">*</span> إلزامية</div>
+          </div>
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label for="address-gov">المحافظة <span class="required">*</span></label>
+              <select id="address-gov" class="form-control" required>
+                <option value="">-- اختر المحافظة --</option>
+                <optgroup label="محافظات الوجه البحري">
+                  <option value="الإسكندرية">الإسكندرية</option>
+                  <option value="البحيرة">البحيرة</option>
+                  <option value="الغربية">الغربية</option>
+                  <option value="المنوفية">المنوفية</option>
+                  <option value="القليوبية">القليوبية</option>
+                  <option value="الشرقية">الشرقية</option>
+                  <option value="الدقهلية">الدقهلية</option>
+                  <option value="كفر الشيخ">كفر الشيخ</option>
+                  <option value="دمياط">دمياط</option>
+                </optgroup>
+                <optgroup label="محافظات الإقليم">
+                  <option value="القاهرة">القاهرة</option>
+                  <option value="الجيزة">الجيزة</option>
+                  <option value="بورسعيد">بورسعيد</option>
+                  <option value="الإسماعيلية">الإسماعيلية</option>
+                  <option value="السويس">السويس</option>
+                </optgroup>
+                <optgroup label="محافظات الوجه القبلي">
+                  <option value="بني سويف">بني سويف</option>
+                  <option value="الفيوم">الفيوم</option>
+                  <option value="المنيا">المنيا</option>
+                  <option value="أسيوط">أسيوط</option>
+                  <option value="سوهاج">سوهاج</option>
+                  <option value="قنا">قنا</option>
+                  <option value="الأقصر">الأقصر</option>
+                  <option value="أسوان">أسوان</option>
+                </optgroup>
+                <optgroup label="محافظات الحدود">
+                  <option value="شمال سيناء">شمال سيناء</option>
+                  <option value="جنوب سيناء">جنوب سيناء</option>
+                  <option value="البحر الأحمر">البحر الأحمر</option>
+                  <option value="الوادي الجديد">الوادي الجديد</option>
+                  <option value="مطروح">مطروح</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="address-center">المركز / المدينة <span class="required">*</span></label>
+              <input type="text" id="address-center" class="form-control" placeholder="مثال: مدينة نصر" required>
+            </div>
+            <div class="form-group">
+              <label for="address-village">القرية / الحي</label>
+              <input type="text" id="address-village" class="form-control" placeholder="اختياري">
+            </div>
+            <div class="form-group">
+              <label for="address-street">اسم الشارع <span class="required">*</span></label>
+              <input type="text" id="address-street" class="form-control" placeholder="مثال: شارع التحرير" required>
+            </div>
+            <div class="form-group">
+              <label for="address-building">رقم العمارة <span class="required">*</span></label>
+              <input type="text" id="address-building" class="form-control" placeholder="مثال: 15" required>
+            </div>
+            <div class="form-group">
+              <label for="address-floor">رقم الدور</label>
+              <input type="text" id="address-floor" class="form-control" placeholder="اختياري">
+            </div>
+          </div>
+        </div>
+
       </section>
 
       <!-- Section C: Certification Type -->

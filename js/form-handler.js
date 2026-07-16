@@ -568,20 +568,53 @@ function validateForm() {
   }
 
   // 2. Full Name
-  const studentNameInput = document.getElementById('student-name');
-  if (!studentNameInput.value.trim()) {
+  const studentNameArInput = document.getElementById('student-name-ar');
+  if (!studentNameArInput.value.trim()) {
     return {
       valid: false,
-      message: 'الرجاء إدخال اسم الطالب كاملاً.',
-      element: studentNameInput
+      message: 'الرجاء إدخال الاسم بالكامل باللغة العربية.',
+      element: studentNameArInput
     };
   }
-  if (studentNameInput.value.length > 100) {
+  if (studentNameArInput.value.length > 100) {
     return {
       valid: false,
       message: 'يجب ألا يزيد اسم الطالب عن 100 حرف.',
-      element: studentNameInput
+      element: studentNameArInput
     };
+  }
+
+  const studentNameEnInput = document.getElementById('student-name-en');
+  if (!studentNameEnInput.value.trim()) {
+    return {
+      valid: false,
+      message: 'الرجاء إدخال الاسم بالكامل باللغة الانجليزية.',
+      element: studentNameEnInput
+    };
+  }
+
+  // Personal Info & Address Validation
+  const requiredFields = [
+    { id: 'student-phone', name: 'رقم هاتف الطالب' },
+    { id: 'student-email', name: 'ايميل الشخصي للطالب' },
+    { id: 'guardian-name', name: 'اسم ولي الامر' },
+    { id: 'guardian-phone', name: 'رقم هاتف ولي الامر' },
+    { id: 'guardian-relation', name: 'صلة قرابة ولي الامر' },
+    { id: 'address-gov', name: 'المحافظه' },
+    { id: 'address-center', name: 'المركز' },
+    { id: 'address-street', name: 'شارع' },
+    { id: 'address-building', name: 'رقم العماره' }
+  ];
+
+  for (let field of requiredFields) {
+    const el = document.getElementById(field.id);
+    if (!el.value.trim()) {
+      return {
+        valid: false,
+        message: 'الرجاء إدخال ' + field.name + '.',
+        element: el
+      };
+    }
   }
 
   // 3. National ID
@@ -752,6 +785,23 @@ function compilePayload() {
   const trackSelect = document.getElementById('track-select');
   const trackVal = trackSelect.value;
 
+  const personalInfo = {
+    studentName: document.getElementById('student-name-ar').value.trim(),
+    studentNameAr: document.getElementById('student-name-ar').value.trim(),
+    studentNameEn: document.getElementById('student-name-en').value.trim(),
+    studentPhone: document.getElementById('student-phone').value.trim(),
+    studentEmail: document.getElementById('student-email').value.trim(),
+    guardianName: document.getElementById('guardian-name').value.trim(),
+    guardianPhone: document.getElementById('guardian-phone').value.trim(),
+    guardianRelation: document.getElementById('guardian-relation').value.trim(),
+    addressGov: document.getElementById('address-gov').value.trim(),
+    addressCenter: document.getElementById('address-center').value.trim(),
+    addressVillage: document.getElementById('address-village').value.trim(),
+    addressStreet: document.getElementById('address-street').value.trim(),
+    addressBuilding: document.getElementById('address-building').value.trim(),
+    addressFloor: document.getElementById('address-floor').value.trim()
+  };
+
   if (certSelect.value === 'ig') {
     let igProgram = 'IGCSE';
     let gradesData = {};
@@ -803,7 +853,7 @@ function compilePayload() {
     const governmentScore = parseFloat(document.getElementById('ig-gov-val').textContent) || 0.0;
     
     return {
-      studentName: document.getElementById('student-name').value.trim(),
+      ...personalInfo,
       nationalId: document.getElementById('national-id').value.trim(),
       certification: certSelect.options[certSelect.selectedIndex].text,
       track: trackVal,
@@ -880,7 +930,7 @@ function compilePayload() {
     const finalPercentage = overallCoefficients > 0 ? (overallWeighted / (100 * overallCoefficients)) * 100 : 0;
 
     return {
-      studentName: document.getElementById('student-name').value.trim(),
+      ...personalInfo,
       nationalId: document.getElementById('national-id').value.trim(),
       certification: certSelect.options[certSelect.selectedIndex].text,
       track: trackSelect.value,
@@ -915,7 +965,7 @@ function compilePayload() {
   });
 
   return {
-    studentName: document.getElementById('student-name').value.trim(),
+    ...personalInfo,
     nationalId: document.getElementById('national-id').value.trim(),
     certification: certSelect.options[certSelect.selectedIndex].text,
     track: trackSelect.value,
@@ -1061,8 +1111,20 @@ function downloadReceiptFile(payload, format) {
     const csvRows = [];
     csvRows.push('\uFEFF'); // UTF-8 BOM for Excel Arabic layout
     csvRows.push('حقل,القيمة');
-    csvRows.push(`اسم الطالب,"${payload.studentName}"`);
+    csvRows.push(`اسم الطالب (عربي),"${payload.studentNameAr || payload.studentName}"`);
+    csvRows.push(`اسم الطالب (انجليزي),"${payload.studentNameEn || ''}"`);
     csvRows.push(`الرقم القومي,${payload.nationalId}`);
+    csvRows.push(`رقم هاتف الطالب,${payload.studentPhone || ''}`);
+    csvRows.push(`ايميل الشخصي للطالب,${payload.studentEmail || ''}`);
+    csvRows.push(`اسم ولي الامر,"${payload.guardianName || ''}"`);
+    csvRows.push(`رقم هاتف ولي الامر,${payload.guardianPhone || ''}`);
+    csvRows.push(`صلة قرابة ولي الامر,"${payload.guardianRelation || ''}"`);
+    csvRows.push(`المحافظه,"${payload.addressGov || ''}"`);
+    csvRows.push(`المركز,"${payload.addressCenter || ''}"`);
+    csvRows.push(`قرية/حي,"${payload.addressVillage || ''}"`);
+    csvRows.push(`شارع,"${payload.addressStreet || ''}"`);
+    csvRows.push(`رقم العماره,"${payload.addressBuilding || ''}"`);
+    csvRows.push(`رقم الدور,"${payload.addressFloor || ''}"`);
     csvRows.push(`نوع الشهادة,"${payload.certification}"`);
     
     if (payload.yearsCount) {
