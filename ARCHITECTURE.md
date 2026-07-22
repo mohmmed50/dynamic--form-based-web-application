@@ -290,15 +290,24 @@ This is the highest-impact change — touches all tiers.
 
 ---
 
-### C. New subject in an existing year/block
+### C. New subject in an existing year/block, or a new track on an existing certification
 
-| Step | Action |
-|------|--------|
-| 1 | Update `ConfigController` (`subjects` or `subjects-saudi` blocks) |
-| 2 | Update frontend fallbacks |
-| 3 | Optionally update legacy `data/subjects.json` / `data/subjects_saudi.json` (legacy only) |
+There are **four places that must be kept in sync manually** (no single source of truth exists yet — this is the #1 cause of "frontend shows X, backend rejects Y" bugs):
 
-**Migration required?** No — subject names are stored as strings in grade rows.
+| # | File | What to change |
+|---|------|-----------------|
+| 1 | `backend/StudentRegistry.API/Controllers/ConfigController.cs` — `GetSubjectsConfig()` (`certifications`/`subjects`) or `GetSaudiSubjectsConfig()` (`block_1`/`block_2`/`block_3`) | Authoritative data the Angular app fetches at runtime via `GET /api/config/subjects` and `GET /api/config/subjects-saudi` |
+| 2 | `frontend/src/app/app.component.ts` — `subjectsFallback` object (and Saudi block arrays if applicable) | Used only if the API call fails (offline resilience) — must mirror #1 exactly or the fallback silently diverges |
+| 3 | `data/subjects.json` (root, legacy PHP form only) | Optional — only touch if the legacy `index.html` form is still in active use |
+| 4 | `js/conditional.js` — `subjectsFallback` const (legacy PHP form only) | Optional — same legacy scope as #3 |
+
+**Saudi year-block display labels** (e.g. "الصف الثالث الثانوي") are a **separate concern** from the subject/coefficient data above — they're computed client-side from `YearsCount`/`selectedYear` ("One Year" / "Two Years" / "Three Years") in:
+- `frontend/src/app/app.component.ts` — inline block-building logic inside the Saudi year-change handler
+- `js/conditional.js` — `getSaudiBlocks(yearVal)` (legacy only)
+
+Both must stay in sync if the label logic changes; regression tests for this live in `frontend/src/app/app.component.spec.ts` under "Saudi Certificate Customization Tests".
+
+**Migration required?** No — subject names, track names, and block labels are all strings; nothing is stored as a foreign key to a lookup table.
 
 ---
 
@@ -411,7 +420,7 @@ At the repository root, a **separate legacy stack** exists and must **not** be m
 - IG point mapping — legacy JS ↔ `GetIgPoints()` ↔ `igPointsMapping` in Angular
 - Standard achieved calculation — legacy ↔ `MappingProfile` ↔ Angular template
 
-Regression coverage exists in `frontend/src/app/app.component.spec.ts` comparing Angular vs legacy JS calculators.
+Regression coverage exists in `frontend/src/app/app.component.spec.ts` comparing Angular vs legacy JS calculators — **but see "Known Housekeeping Gaps" below: the Angular test runner is not currently wired up, so these specs do not run via any script yet.**
 
 ---
 
@@ -421,6 +430,98 @@ Regression coverage exists in `frontend/src/app/app.component.spec.ts` comparing
 2. **EF migrations in production** — Are you using `schema.sql` only, or have migrations been generated locally but not committed?
 3. **Authentication** — No auth is implemented today; will future admin/report endpoints require JWT or Windows Auth?
 4. **UNC shared uploads** — Is horizontal scaling planned? `FileStorageService` currently writes to local `wwwroot/uploads` only.
+
+---
+
+## Known Housekeeping Gaps (verified 2026-07-23)
+
+These are real, verified gaps in the repo — not hypothetical — so an AI assistant reading this doc doesn't recommend something that silently fails:
+
+- **No Angular test runner configured.** `frontend/angular.json` has no `test` architect target and `frontend/package.json` has no `test` script (no Karma/Jasmine setup). `app.component.spec.ts` exists and contains real regression tests (GPA formulas, IG points, Saudi track/label behavior) but **`ng test` / `npm test` currently fail with "Unknown arguments"** — there is nothing to run them. Anyone asked to "run the tests" must first add a working test builder, or verify logic manually via `ng build` + manual QA.
+- **`.gitignore` was missing until 2026-07-23** (PR #1). If you see a huge accidental commit with `bin/`, `obj/`, `node_modules/`, or `.vs/` in git history, that's why — it was reset out before merging, but always check `git status` before `git add -A`.
+- **`AutoMapper` 13.0.1 has a known high-severity NuGet advisory** (`GHSA-rvv3-g6hj-g44x`), surfaced as a `dotnet build` warning (NU1903). Not yet remediated; worth a version bump when convenient.
+- **No EF Core `Migrations/` folder exists.** `database/schema.sql` is the only source of truth for the schema today (confirmed — the six tables in a fresh `StudentRegistryDb` match `schema.sql` exactly). If you ask for a schema change, expect either a raw SQL edit + manual `schema.sql` update, or a first-time `dotnet ef migrations add InitialMigration` bootstrap.
+- **Angular `fileReplacements` for `environment.prod.ts` are not configured** in `angular.json`. A production build (`ng build --configuration production`) still compiles with `environment.ts`'s `apiUrl` unless this is fixed — confirmed via a real production build showing an "unused file" warning for `environment.prod.ts`.
+
+---
+
+## Current Live Configuration Data (snapshot, verify against `ConfigController.cs` before relying on exact values)
+
+This is the actual current content of `backend/StudentRegistry.API/Controllers/ConfigController.cs` as of the last edit (adding "المسار العام" to Saudi tracks, PR #1). Paste this section into a plain chat alongside a feature request so the assistant knows the *exact current strings* instead of guessing.
+
+**Certifications & tracks** (`GET /api/config/subjects` → `certifications`):
+
+| Cert key | Display name | Tracks |
+|---|---|---|
+| `ig` | شهادات الـ IG (IGCSE/O-Level/A-Level) | IGCSE (Early Years) - مواد عامة / A-Levels (Advanced Years) - تخصص علمي أو أدبي / AS-Levels (Intermediate Year) - انتقالى |
+| `saudi` | شهادة سعودية | المسار العام / مسار العلوم / مسار الإدارة والأعمال / مسار الهندسة والتكنولوجيا / مسار العلوم الإنسانية |
+| `qatari` | شهادة قطرية | المسار العلمي / المسار الأدبي والإنسانيات / مسار التكنولوجيا |
+| `bahraini` | شهادة بحرينية | مسار العلوم والرياضيات / مسار اللغات والعلوم الإنسانية / مسار العلوم التجارية |
+| `kuwaiti` | شهادة كويتية | القسم العلمي / القسم الأدبي |
+
+**Standard subjects** (`GET /api/config/subjects` → `subjects`, used by Qatari/Bahraini/Kuwaiti certs): `year_1`, `year_2`, `year_3` — each an array of ~8 Arabic subject names (e.g. اللغة العربية، اللغة الإنجليزية، الرياضيات، الكيمياء، الفيزياء، الأحياء…).
+
+**Saudi blocks** (`GET /api/config/subjects-saudi`): `block_1` (15 subjects), `block_2` (11 subjects), `block_3` (15 subjects), each subject an object `{ name, coefficient }` with coefficients ranging 3–5. Block-to-displayed-year mapping depends on `YearsCount`:
+- "One Year" → shows `block_1` only, labeled "الصف الثالث الثانوي"
+- "Two Years" → shows `block_1` then `block_2`, labeled "الصف الثاني الثانوي" then "الصف الثالث الثانوي"
+- "Three Years" → shows `block_1`, `block_2`, `block_3`, labeled "الصف الأول/الثاني/الثالث الثانوي"
+
+For the exact subject lists and coefficients, read `ConfigController.cs` directly — they're long and change occasionally; don't trust a stale copy-paste.
+
+---
+
+## Prompt Template — For an AI Assistant Turning a Feature Request Into a Claude Code Task
+
+If you (an AI assistant with no repo access) are reading this document because the user pasted it and described a change they want, use this template to produce a precise instruction they can hand to Claude Code (or any coding agent with repo access). Fill in the bracketed parts from what the user told you; do not invent subject names, coefficients, or tracks not stated by the user or shown in the snapshot above.
+
+**Case 1 — Add a new subject to an existing certification/block:**
+```
+Add the subject "[SUBJECT NAME IN ARABIC]" [with coefficient N, if Saudi] to
+[certification key: ig|saudi|qatari|bahraini|kuwaiti] [block_1/block_2/block_3 if Saudi,
+or year_1/year_2/year_3 if standard]. Update all applicable sync points per
+ARCHITECTURE.md section "New subject in an existing year/block":
+1. backend/StudentRegistry.API/Controllers/ConfigController.cs
+2. frontend/src/app/app.component.ts (subjectsFallback)
+3. data/subjects.json (only if legacy PHP form still used)
+4. js/conditional.js (only if legacy PHP form still used)
+Do not touch grade-calculation logic, DB schema, or migrations — this is config-only.
+```
+
+**Case 2 — Add a new track to an existing certification:**
+```
+Add the track "[TRACK NAME IN ARABIC]" to the "[cert key]" certification.
+Update ConfigController.cs and the frontend fallback in app.component.ts
+(and legacy data/subjects.json + js/conditional.js only if the legacy form is in use).
+No migration needed — Track is a free-text column.
+```
+
+**Case 3 — Add a brand-new certification type (e.g. "Omani Certificate"):**
+```
+Add a new certification "[NAME]" with cert key "[key]" and tracks [list].
+Processing model: [choose one — Saudi-like (cumulative weighted % with coefficients) /
+IG-like (points + factor + sports bonus) / Standard-like (per-subject grade × weight)].
+Follow ARCHITECTURE.md section "4.A New certification type" step by step:
+ConfigController → frontend fallback + UI branching → StudentCreateDto/StudentResponseDto →
+StudentCreateDtoValidator (When() branch) → StudentService (Process[X]Certificate method) →
+MappingProfile → new Domain entity + EF migration only if a new grade shape is needed.
+Keep certification string-matching logic identical between StudentService and
+StudentCreateDtoValidator (both currently match cert names via .Contains()/.Equals()).
+```
+
+**Case 4 — Anything touching grade math (GPA formulas, IG points, coefficients):**
+```
+[Describe the calculation change.]
+This must be changed in BOTH the backend (StudentService.cs — the relevant
+Process[X]Certificate method or GetIgPoints()) AND the frontend
+(app.component.ts — the matching calculation method), or the number the
+student sees during entry will not match what gets persisted. Update/add a
+regression test in app.component.spec.ts.
+Note: the Angular test runner (`ng test`) is not currently wired up in this repo
+(see "Known Housekeeping Gaps") — verify the calculation manually or fix the
+test runner first if automated verification is required.
+```
+
+Always end the generated prompt with: *"Read ARCHITECTURE.md sections 2 and 3 before starting — some areas (CORS, connection strings, cascade deletes, certification string matching) are marked 'do not touch carelessly'."*
 
 ---
 
