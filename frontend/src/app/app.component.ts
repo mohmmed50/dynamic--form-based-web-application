@@ -114,7 +114,7 @@ export class AppComponent implements OnInit {
   private readonly subjectsFallback = {
     "certifications": {
       "ig": { "name": "شهادات الـ IG (IGCSE/O-Level/A-Level)", "tracks": ["IGCSE (Early Years) - مواد عامة", "A-Levels (Advanced Years) - تخصص علمي أو أدبي", "AS-Levels (Intermediate Year) - انتقالى"] },
-      "saudi": { "name": "شهادة سعودية", "tracks": ["مسار العلوم", "مسار الإدارة والأعمال", "مسار الهندسة والتكنولوجيا", "مسار العلوم الإنسانية"] },
+      "saudi": { "name": "شهادة سعودية", "tracks": ["المسار العام", "مسار العلوم", "مسار الإدارة والأعمال", "مسار الهندسة والتكنولوجيا", "مسار العلوم الإنسانية"] },
       "qatari": { "name": "شهادة قطرية", "tracks": ["المسار العلمي", "المسار الأدبي والإنسانيات", "مسار التكنولوجيا"] },
       "bahraini": { "name": "شهادة بحرينية", "tracks": ["مسار العلوم والرياضيات", "مسار اللغات والعلوم الإنسانية", "مسار العلوم التجارية"] },
       "kuwaiti": { "name": "شهادة كويتية", "tracks": ["القسم العلمي", "القسم الأدبي"] }
@@ -384,14 +384,15 @@ export class AppComponent implements OnInit {
         this.saudiBlocks.push({ label, key, subjects });
       };
 
-      if (['One Year', 'Two Years', 'Three Years'].includes(this.selectedYear)) {
-        addBlock('السنة الأولى (Year 1)', 'Year 1', JSON.parse(JSON.stringify(b1)));
-      }
-      if (['Two Years', 'Three Years'].includes(this.selectedYear)) {
-        addBlock('السنة الثانية (Year 2)', 'Year 2', JSON.parse(JSON.stringify(b2)));
-      }
-      if (['Three Years'].includes(this.selectedYear)) {
-        addBlock('السنة الثالثة (Year 3)', 'Year 3', JSON.parse(JSON.stringify(b3)));
+      if (this.selectedYear === 'One Year') {
+        addBlock('الصف الثالث الثانوي (Third Secondary Grade)', 'Year 1', JSON.parse(JSON.stringify(b1)));
+      } else if (this.selectedYear === 'Two Years') {
+        addBlock('الصف الثاني الثانوي (Second Secondary Grade)', 'Year 1', JSON.parse(JSON.stringify(b1)));
+        addBlock('الصف الثالث الثانوي (Third Secondary Grade)', 'Year 2', JSON.parse(JSON.stringify(b2)));
+      } else if (this.selectedYear === 'Three Years') {
+        addBlock('الصف الأول الثانوي (First Secondary Grade)', 'Year 1', JSON.parse(JSON.stringify(b1)));
+        addBlock('الصف الثاني الثانوي (Second Secondary Grade)', 'Year 2', JSON.parse(JSON.stringify(b2)));
+        addBlock('الصف الثالث الثانوي (Third Secondary Grade)', 'Year 3', JSON.parse(JSON.stringify(b3)));
       }
 
       // Add occurrence suffix for duplicate names
