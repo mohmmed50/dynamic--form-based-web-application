@@ -1,0 +1,16 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+Backup/
+UpgradeLog.htm
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+
+# Misc
+*.log
+appsettings.Development.json

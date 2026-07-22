@@ -134,6 +134,40 @@ describe('AppComponent Calculation Regression Tests', () => {
     expect(component).toBeTruthy();
   });
 
+  describe('Saudi Certificate Customization Tests', () => {
+    it('should include General Track (المسار العام) in Saudi certification tracks fallback', () => {
+      component.selectedCert = 'saudi';
+      component.onCertChange();
+      expect(component.trackList).toContain('المسار العام');
+      expect(component.trackList[0]).toBe('المسار العام');
+    });
+
+    it('should set correct grade table titles based on years of study', () => {
+      component.selectedCert = 'saudi';
+      
+      // 1 Year
+      component.selectedYear = 'One Year';
+      component.onYearChange();
+      expect(component.saudiBlocks.length).toBe(1);
+      expect(component.saudiBlocks[0].label).toContain('الصف الثالث الثانوي');
+
+      // 2 Years
+      component.selectedYear = 'Two Years';
+      component.onYearChange();
+      expect(component.saudiBlocks.length).toBe(2);
+      expect(component.saudiBlocks[0].label).toContain('الصف الثاني الثانوي');
+      expect(component.saudiBlocks[1].label).toContain('الصف الثالث الثانوي');
+
+      // 3 Years
+      component.selectedYear = 'Three Years';
+      component.onYearChange();
+      expect(component.saudiBlocks.length).toBe(3);
+      expect(component.saudiBlocks[0].label).toContain('الصف الأول الثانوي');
+      expect(component.saudiBlocks[1].label).toContain('الصف الثاني الثانوي');
+      expect(component.saudiBlocks[2].label).toContain('الصف الثالث الثانوي');
+    });
+  });
+
   // 1. Regression tests for Saudi Cumulative GPA
   describe('Saudi Cumulative GPA Regression Tests', () => {
     const representativeSaudiDatasets = [

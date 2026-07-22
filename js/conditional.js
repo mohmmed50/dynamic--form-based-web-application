@@ -12,6 +12,7 @@ const subjectsFallback = {
     "saudi": {
       "name": "شهادة سعودية",
       "tracks": [
+        "المسار العام",
         "مسار العلوم",
         "مسار الإدارة والأعمال",
         "مسار الهندسة والتكنولوجيا",
@@ -213,23 +214,36 @@ function getSaudiBlocks(yearVal) {
   const b3 = saudiConfig.block_3 || [];
   
   const blocks = [];
-  if (yearVal === 'One Year' || yearVal === 'Two Years' || yearVal === 'Three Years') {
+  if (yearVal === 'One Year') {
     blocks.push({
-      label: 'السنة الأولى (Year 1)',
+      label: 'الصف الثالث الثانوي (Third Secondary Grade)',
       key: 'Year 1',
       subjects: JSON.parse(JSON.stringify(b1))
     });
-  }
-  if (yearVal === 'Two Years' || yearVal === 'Three Years') {
+  } else if (yearVal === 'Two Years') {
     blocks.push({
-      label: 'السنة الثانية (Year 2)',
+      label: 'الصف الثاني الثانوي (Second Secondary Grade)',
+      key: 'Year 1',
+      subjects: JSON.parse(JSON.stringify(b1))
+    });
+    blocks.push({
+      label: 'الصف الثالث الثانوي (Third Secondary Grade)',
       key: 'Year 2',
       subjects: JSON.parse(JSON.stringify(b2))
     });
-  }
-  if (yearVal === 'Three Years') {
+  } else if (yearVal === 'Three Years') {
     blocks.push({
-      label: 'السنة الثالثة (Year 3)',
+      label: 'الصف الأول الثانوي (First Secondary Grade)',
+      key: 'Year 1',
+      subjects: JSON.parse(JSON.stringify(b1))
+    });
+    blocks.push({
+      label: 'الصف الثاني الثانوي (Second Secondary Grade)',
+      key: 'Year 2',
+      subjects: JSON.parse(JSON.stringify(b2))
+    });
+    blocks.push({
+      label: 'الصف الثالث الثانوي (Third Secondary Grade)',
       key: 'Year 3',
       subjects: JSON.parse(JSON.stringify(b3))
     });
