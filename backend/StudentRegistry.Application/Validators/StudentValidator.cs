@@ -10,11 +10,13 @@ namespace StudentRegistry.Application.Validators
         {
             RuleFor(x => x.StudentName)
                 .NotEmpty().WithMessage("الرجاء إدخال اسم الطالب كاملاً.")
-                .MaximumLength(100).WithMessage("يجب ألا يزيد اسم الطالب عن 100 حرف.");
+                .MaximumLength(100).WithMessage("يجب ألا يزيد اسم الطالب عن 100 حرف.")
+                .Must(NotContainHtml).WithMessage("اسم الطالب غير صالح ولا يمكن أن يحتوي على رموز أو وسوم HTML.");
 
             RuleFor(x => x.NationalId)
                 .NotEmpty().WithMessage("الرجاء إدخال الرقم القومي.")
-                .Length(8, 20).WithMessage("الرجاء إدخال رقم قومي صحيح (بين 8 و 20 خانة).");
+                .Length(8, 20).WithMessage("الرجاء إدخال رقم قومي صحيح (بين 8 و 20 خانة).")
+                .Must(NotContainHtml).WithMessage("الرقم القومي غير صالح ولا يمكن أن يحتوي على رموز أو وسوم HTML.");
 
             RuleFor(x => x.Certification)
                 .NotEmpty().WithMessage("الرجاء اختيار نوع الشهادة المعادلة.");
@@ -95,6 +97,12 @@ namespace StudentRegistry.Application.Validators
                    photo.StartsWith("data:image/jpg;base64,") ||
                    photo.StartsWith("data:image/png;base64,") ||
                    photo.StartsWith("data:image/webp;base64,");
+        }
+
+        private bool NotContainHtml(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return true;
+            return !text.Contains("<") && !text.Contains(">");
         }
 
         private bool IsSaudiCert(string cert)

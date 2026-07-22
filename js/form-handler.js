@@ -976,14 +976,72 @@ function compilePayload() {
   };
 }
 
-// Send Data to PHP Endpoint with local backup fallback
+// Send Data to ASP.NET Core API with local backup fallback
 function sendData(payload, submitBtn, originalText) {
-  fetch('php/submit-form.php', {
+  // Convert payload to ASP.NET Core DTO structure
+  const apiPayload = {
+    studentName: payload.studentName,
+    nationalId: payload.nationalId,
+    certification: payload.certification === 'شهادة سعودية' ? 'Saudi Certificate' : (payload.certification.includes('IG') ? 'IG' : payload.certification),
+    track: payload.track,
+    photo: payload.photo
+  };
+
+  if (payload.yearsCount) {
+    apiPayload.yearsCount = payload.yearsCount;
+    apiPayload.saudiGrades = [];
+    payload.years.forEach(yr => {
+      yr.grades.forEach(g => {
+        apiPayload.saudiGrades.push({
+          yearLabel: yr.yearLabel,
+          subjectName: g.subjectName,
+          coefficient: g.coefficient,
+          achieved: g.achieved
+        });
+      });
+    });
+  } else if (payload.igProgram) {
+    apiPayload.igProgram = payload.igProgram;
+    apiPayload.factor = payload.factor;
+    apiPayload.sportsBonus = payload.sportsBonus;
+    apiPayload.igGradeCounts = [];
+    
+    const activeSubkey = payload.igProgram === 'IGCSE' ? 'igcse' : (payload.igProgram === 'AS-Levels' ? 'as_level' : 'a_level');
+    const gradesObj = payload.grades[activeSubkey] || {};
+    
+    Object.keys(gradesObj).forEach(gradeKey => {
+      let gradeType = 'igcse-legacy';
+      if (payload.igProgram === 'IGCSE') {
+        const isNumeric = ['9', '8', '7', '6', '5', '4'].includes(gradeKey);
+        gradeType = isNumeric ? 'igcse-numeric' : 'igcse-legacy';
+      } else if (payload.igProgram === 'AS-Levels') {
+        gradeType = 'as-level';
+      } else if (payload.igProgram === 'A-Levels') {
+        gradeType = 'a-level';
+      }
+
+      apiPayload.igGradeCounts.push({
+        gradeType: gradeType,
+        grade: gradeKey,
+        count: gradesObj[gradeKey]
+      });
+    });
+  } else {
+    apiPayload.yearOfStudy = payload.yearOfStudy;
+    apiPayload.standardGrades = payload.grades.map(g => ({
+      yearOfStudy: payload.yearOfStudy,
+      subjectName: g.subjectName,
+      grade: g.grade,
+      weightedPercentage: g.weighted
+    }));
+  }
+
+  fetch('http://localhost:5000/api/students/register', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(apiPayload)
   })
   .then(async response => {
     let result = {};

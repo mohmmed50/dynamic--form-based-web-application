@@ -47,16 +47,20 @@ namespace StudentRegistry.Infrastructure.Storage
                 throw new ArgumentException("فشل فك تشفير الصورة الشخصية.");
             }
 
-            // 4. Validate image file size (max 5MB)
+            // 4. Validate image file signature (magic bytes)
+            if (!IsValidImageSignature(imageBytes, fileType))
+                throw new ArgumentException("محتوى الصورة غير صالح أو لا يتطابق مع الصيغة المحددة.");
+
+            // 5. Validate image file size (max 5MB)
             if (imageBytes.Length > MaxFileSizeInBytes)
                 throw new ArgumentException("حجم الصورة كبير جداً. الحد الأقصى هو 5 ميجابايت.");
 
-            // 5. Generate secure unique filename
+            // 6. Generate secure unique filename
             // Clean national ID for filesystem safety
             string safeNationalId = Regex.Replace(nationalId, @"[^a-zA-Z0-9_\-]", "");
             string uniqueFilename = $"{safeNationalId}_{Guid.NewGuid():N}.{fileType}";
 
-            // 6. Resolve absolute upload path in wwwroot
+            // 7. Resolve absolute upload path in wwwroot
             string uploadsFolder = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads");
             if (!Directory.Exists(uploadsFolder))
             {
@@ -65,11 +69,36 @@ namespace StudentRegistry.Infrastructure.Storage
 
             string absolutePath = Path.Combine(uploadsFolder, uniqueFilename);
 
-            // 7. Write files asynchronously to disk
+            // 8. Write files asynchronously to disk
             await File.WriteAllBytesAsync(absolutePath, imageBytes);
 
-            // 8. Return relative path for database storage
+            // 9. Return relative path for database storage
             return $"uploads/{uniqueFilename}";
+        }
+
+        private bool IsValidImageSignature(byte[] bytes, string extension)
+        {
+            if (bytes == null || bytes.Length < 12) return false;
+
+            if (extension == "jpg" || extension == "jpeg")
+            {
+                // JPEG starts with FF D8 FF
+                return bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF;
+            }
+            else if (extension == "png")
+            {
+                // PNG starts with 89 50 4E 47 0D 0A 1A 0A
+                return bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 &&
+                       bytes[4] == 0x0D && bytes[5] == 0x0A && bytes[6] == 0x1A && bytes[7] == 0x0A;
+            }
+            else if (extension == "webp")
+            {
+                // WebP starts with "RIFF" (offset 0) and has "WEBP" (offset 8)
+                return bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 &&
+                       bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50;
+            }
+
+            return false;
         }
 
         public void DeleteFile(string relativePath)
