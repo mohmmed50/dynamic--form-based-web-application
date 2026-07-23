@@ -1,6 +1,7 @@
 let appConfig = null;
 let saudiConfig = null;
 let kuwaitiConfig = null;
+let qatariConfig = null;
 
 // Fetch config from the ConfigController API (single source of truth)
 async function loadSubjectsConfig() {
@@ -38,6 +39,18 @@ async function loadSubjectsConfig() {
   } catch (error) {
     console.error('Could not load Kuwaiti subjects configuration.', error);
     showAlert('form-alert', 'تعذر تحميل بيانات مواد الشهادة الكويتية من الخادم. الرجاء تحديث الصفحة.', 'danger');
+  }
+
+  try {
+    const response = await fetch('/api/config/subjects-qatari');
+    if (response.ok) {
+      qatariConfig = await response.json();
+    } else {
+      throw new Error('Failed to load /api/config/subjects-qatari: ' + response.status);
+    }
+  } catch (error) {
+    console.error('Could not load Qatari subjects configuration.', error);
+    showAlert('form-alert', 'تعذر تحميل بيانات مواد الشهادة القطرية من الخادم. الرجاء تحديث الصفحة.', 'danger');
   }
 }
 
@@ -180,6 +193,7 @@ function initConditionals() {
     document.getElementById('non-ig-grades-container').style.display = 'block';
     document.getElementById('ig-grades-container').style.display = 'none';
     document.getElementById('kuwaiti-grades-container').style.display = 'none';
+    document.getElementById('qatari-grades-container').style.display = 'none';
     document.getElementById('section-year').style.display = 'block';
     document.getElementById('section-grades-title').textContent = 'جدول إدخال الدرجات';
     document.getElementById('section-grades-desc').textContent = 'أدخل الدرجة والنسبة الموزونة لكل مادة أدناه. سيتم احتساب الدرجة المتحصلة تلقائياً.';
@@ -202,6 +216,13 @@ function initConditionals() {
         document.getElementById('kuwaiti-grades-container').style.display = 'block';
         document.getElementById('section-grades-title').textContent = '🧮 حاسبة الشهادة الكويتية';
         document.getElementById('section-grades-desc').textContent = 'اختر عدد سنوات الدراسة، ثم أدخل الدرجة المتحصلة لكل مادة ونسبة كل سنة من معدلك التراكمي كما هي مدونة في شهادتك.';
+      } else if (certKey === 'qatari') {
+        // Qatari cert is grade-12-only — no year-select section at all.
+        document.getElementById('section-year').style.display = 'none';
+        document.getElementById('non-ig-grades-container').style.display = 'none';
+        document.getElementById('qatari-grades-container').style.display = 'block';
+        document.getElementById('section-grades-title').textContent = '🧮 حاسبة الشهادة القطرية';
+        document.getElementById('section-grades-desc').textContent = 'أدخل درجة كل مادة من مواد المسار العلمي للصف الثاني عشر. المسارات الأخرى غير مدعومة حالياً.';
       }
 
       // Populate track options
@@ -247,6 +268,11 @@ function initConditionals() {
         }
       } else if (certKey === 'kuwaiti') {
         activateSection('section-grades');
+      } else if (certKey === 'qatari') {
+        activateSection('section-grades');
+        if (typeof generateQatariGradesUI === 'function') {
+          generateQatariGradesUI(trackVal);
+        }
       } else {
         yearSelect.value = '';
         activateSection('section-year');

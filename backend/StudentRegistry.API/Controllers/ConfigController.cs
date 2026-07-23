@@ -118,5 +118,20 @@ namespace StudentRegistry.API.Controllers
 
             return Ok(kuwaitiConfig);
         }
+
+        [HttpGet("subjects-qatari")]
+        public IActionResult GetQatariSubjectsConfig()
+        {
+            var qatariConfig = new
+            {
+                scientific = QatariConstants.ScientificTrackSubjects,
+                max_mark_per_subject = QatariConstants.MaxMarkPerSubject,
+                total_max = QatariConstants.TotalMaxMark,
+                islamic_education_subject = QatariConstants.IslamicEducationSubject,
+                scientific_track_name = QatariConstants.ScientificTrack
+            };
+
+            return Ok(qatariConfig);
+        }
     }
 }

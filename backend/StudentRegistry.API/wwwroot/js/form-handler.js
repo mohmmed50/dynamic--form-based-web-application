@@ -7,6 +7,7 @@ function initFormHandlers() {
   setupTableCalculationListeners();
   setupIGCalculatorListeners();
   setupKuwaitiCalculatorListeners();
+  setupQatariCalculatorListeners();
   setupSubmissionHandler();
 }
 
@@ -700,6 +701,99 @@ function recalculateKuwaiti() {
   updateProgressIndicator();
 }
 
+// 3d. Qatari Calculator (§1.4 of the certificate rules — mirrors StudentService.ProcessQatariCertificate exactly)
+// Scientific track only, grade 12 only. Max mark is fixed at 100 per subject; the denominator is
+// the constant 700 and is never derived from the submitted rows. التربية الإسلامية is collected
+// separately as a documentation-only mark and never enters the calculation.
+const QATARI_TOTAL_MAX = 700;
+
+function generateQatariGradesUI(trackVal) {
+  const blockedAlert = document.getElementById('qatari-track-blocked-alert');
+  const gradeBlock = document.getElementById('qatari-grade-block');
+  const tbody = document.getElementById('qatari-subjects-body');
+  if (!blockedAlert || !gradeBlock || !tbody || !qatariConfig) return;
+
+  const isScientific = trackVal === qatariConfig.scientific_track_name;
+
+  if (!isScientific) {
+    blockedAlert.style.display = 'flex';
+    gradeBlock.style.display = 'none';
+    return;
+  }
+
+  blockedAlert.style.display = 'none';
+  gradeBlock.style.display = 'block';
+
+  tbody.innerHTML = '';
+  const maxMark = qatariConfig.max_mark_per_subject;
+  (qatariConfig.scientific || []).forEach((subjectName, index) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="col-num">${index + 1}</td>
+      <td class="col-subject">${subjectName}</td>
+      <td class="col-grade">
+        <input type="number" min="0" max="${maxMark}" step="any" required placeholder="0-${maxMark}"
+               class="table-input qatari-mark-input" data-subject="${subjectName}">
+      </td>
+      <td class="col-weight">${maxMark}</td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  tbody.querySelectorAll('.qatari-mark-input').forEach(input => {
+    input.addEventListener('input', recalculateQatari);
+    input.addEventListener('change', recalculateQatari);
+  });
+
+  recalculateQatari();
+}
+
+function setupQatariCalculatorListeners() {
+  ['qatari-islamic-education-mark', 'qatari-printed-total', 'qatari-printed-percentage'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', recalculateQatari);
+      el.addEventListener('change', recalculateQatari);
+    }
+  });
+}
+
+function recalculateQatari() {
+  const tbody = document.getElementById('qatari-subjects-body');
+  if (!tbody) return;
+
+  let finalTotal = 0;
+  tbody.querySelectorAll('.qatari-mark-input').forEach(input => {
+    finalTotal += parseFloat(input.value) || 0;
+  });
+
+  const percentage = (finalTotal / QATARI_TOTAL_MAX) * 100;
+
+  const totalEl = document.getElementById('qatari-final-total');
+  const percentageEl = document.getElementById('qatari-percentage');
+  if (totalEl) totalEl.textContent = finalTotal.toFixed(2) + ' / 700';
+  if (percentageEl) percentageEl.textContent = percentage.toFixed(2) + '%';
+
+  const printedTotalInput = document.getElementById('qatari-printed-total');
+  const printedPercentageInput = document.getElementById('qatari-printed-percentage');
+  const noteEl = document.getElementById('qatari-comparison-note');
+  if (noteEl) {
+    const printedTotal = printedTotalInput ? parseFloat(printedTotalInput.value) : NaN;
+    const printedPercentage = printedPercentageInput ? parseFloat(printedPercentageInput.value) : NaN;
+    if (!isNaN(printedTotal) && !isNaN(printedPercentage)) {
+      const totalDiff = printedTotal - finalTotal;
+      const percentageDiff = printedPercentage - percentage;
+      noteEl.textContent = `المجموع المطبوع على الشهادة (${printedTotal}/800) يشمل مادة التربية الإسلامية. ` +
+        `الفرق عن المجموع المحتسب هنا هو ${totalDiff.toFixed(2)} درجة (${percentageDiff.toFixed(2)}%) ` +
+        `بسبب استبعاد هذه المادة من حساب المعادلة.`;
+    } else {
+      noteEl.textContent = '';
+    }
+  }
+
+  updateProgressIndicator();
+}
+
 // 4. Form Submission and Validation
 function setupSubmissionHandler() {
   const mainForm = document.getElementById('student-reg-form');
@@ -958,6 +1052,48 @@ function validateForm() {
     return { valid: true };
   }
 
+  // Check if Qatari Cert is active
+  if (certSelect.value === 'qatari') {
+    if (trackSelect.value !== (qatariConfig ? qatariConfig.scientific_track_name : 'المسار العلمي')) {
+      return {
+        valid: false,
+        message: 'قائمة مواد هذا المسار غير معتمدة بعد في النظام — يرجى مراجعة مكتب تنسيق القبول بالجامعات والمعاهد المصرية.',
+        element: trackSelect
+      };
+    }
+
+    const markInputs = document.querySelectorAll('.qatari-mark-input');
+    if (markInputs.length === 0) {
+      return {
+        valid: false,
+        message: 'الرجاء توليد جدول مواد الشهادة القطرية أولاً.',
+        element: trackSelect
+      };
+    }
+
+    for (let i = 0; i < markInputs.length; i++) {
+      const markVal = parseFloat(markInputs[i].value);
+      if (isNaN(markVal) || markVal < 0 || markVal > 100) {
+        return {
+          valid: false,
+          message: 'الرجاء إدخال درجة صحيحة (بين 0 و100) لجميع المواد.',
+          element: markInputs[i]
+        };
+      }
+    }
+
+    const islamicInput = document.getElementById('qatari-islamic-education-mark');
+    if (islamicInput.value !== '' && (isNaN(parseFloat(islamicInput.value)) || parseFloat(islamicInput.value) < 0 || parseFloat(islamicInput.value) > 100)) {
+      return {
+        valid: false,
+        message: 'درجة التربية الإسلامية يجب أن تكون بين 0 و100.',
+        element: islamicInput
+      };
+    }
+
+    return { valid: true };
+  }
+
   // Check if Saudi Cert is active
   if (certSelect.value === 'saudi') {
     const yearSelect = document.getElementById('year-select');
@@ -1051,6 +1187,45 @@ function compilePayload() {
     addressBuilding: document.getElementById('address-building').value.trim(),
     addressFloor: document.getElementById('address-floor').value.trim()
   };
+
+  if (certSelect.value === 'qatari') {
+    const subjects = [];
+    document.querySelectorAll('.qatari-mark-input').forEach(input => {
+      subjects.push({
+        subjectName: input.getAttribute('data-subject'),
+        mark: parseFloat(input.value) || 0
+      });
+    });
+
+    const islamicInput = document.getElementById('qatari-islamic-education-mark');
+    const printedTotalInput = document.getElementById('qatari-printed-total');
+    const printedPercentageInput = document.getElementById('qatari-printed-percentage');
+
+    const islamicEducationMark = islamicInput && islamicInput.value !== '' ? parseFloat(islamicInput.value) : null;
+    const printedTotal = printedTotalInput && printedTotalInput.value !== '' ? parseFloat(printedTotalInput.value) : null;
+    const printedPercentage = printedPercentageInput && printedPercentageInput.value !== '' ? parseFloat(printedPercentageInput.value) : null;
+
+    const finalTotal = parseFloat(document.getElementById('qatari-final-total').textContent) || 0;
+    const percentage = parseFloat(document.getElementById('qatari-percentage').textContent) || 0;
+
+    return {
+      ...personalInfo,
+      nationalId: document.getElementById('national-id').value.trim(),
+      certification: certSelect.options[certSelect.selectedIndex].text,
+      track: trackVal,
+      yearOfStudy: '',
+      photo: uploadedPhotoBase64,
+      qatariData: {
+        subjects: subjects,
+        islamicEducationMark: islamicEducationMark,
+        printedTotal: printedTotal,
+        printedPercentage: printedPercentage
+      },
+      finalTotal: finalTotal,
+      percentage: percentage,
+      submittedAt: new Date().toISOString()
+    };
+  }
 
   if (certSelect.value === 'kuwaiti') {
     const yearsCount = document.getElementById('kuwaiti-years-count').value;
@@ -1347,6 +1522,13 @@ function sendData(payload, submitBtn, originalText) {
       grade11Subjects: payload.kuwaitiData.grade11Subjects,
       grade12Subjects: payload.kuwaitiData.grade12Subjects
     };
+  } else if (payload.qatariData) {
+    apiPayload.qatariData = {
+      subjects: payload.qatariData.subjects,
+      islamicEducationMark: payload.qatariData.islamicEducationMark,
+      printedTotal: payload.qatariData.printedTotal,
+      printedPercentage: payload.qatariData.printedPercentage
+    };
   } else {
     apiPayload.yearOfStudy = payload.yearOfStudy;
     apiPayload.standardGrades = payload.grades.map(g => ({
@@ -1449,6 +1631,17 @@ function showSuccessScreen(payload, mode, serverPath = '') {
     if (saudiGpaRow && saudiGpaVal) {
       saudiGpaRow.style.display = 'flex';
       saudiGpaVal.textContent = (payload.finalPercentage || 0).toFixed(2) + '%';
+    }
+  } else if (payload.qatariData) {
+    if (programRow) programRow.style.display = 'none';
+    if (yearRow) {
+      yearRow.style.display = 'flex';
+      if (yearLabel) yearLabel.textContent = 'المجموع (من 700):';
+      document.getElementById('receipt-year').textContent = (payload.finalTotal || 0).toFixed(2) + ' / 700';
+    }
+    if (saudiGpaRow && saudiGpaVal) {
+      saudiGpaRow.style.display = 'flex';
+      saudiGpaVal.textContent = (payload.percentage || 0).toFixed(2) + '%';
     }
   } else {
     if (programRow) programRow.style.display = 'none';
@@ -1576,6 +1769,26 @@ function downloadReceiptFile(payload, format) {
           csvRows.push(`"${s.subjectName}",${s.obtained}`);
         });
         csvRows.push('');
+      });
+    } else if (payload.qatariData) {
+      const qa = payload.qatariData;
+      csvRows.push(`المسار الأكاديمي,"${payload.track}"`);
+      csvRows.push(`المجموع (من 700),${(payload.finalTotal || 0)}`);
+      csvRows.push(`النسبة المئوية,${(payload.percentage || 0)}%`);
+      if (qa.islamicEducationMark !== null && qa.islamicEducationMark !== undefined) {
+        csvRows.push(`درجة التربية الإسلامية (غير محتسبة),${qa.islamicEducationMark}`);
+      }
+      if (qa.printedTotal !== null && qa.printedTotal !== undefined) {
+        csvRows.push(`المجموع المطبوع على الشهادة (من 800),${qa.printedTotal}`);
+      }
+      if (qa.printedPercentage !== null && qa.printedPercentage !== undefined) {
+        csvRows.push(`النسبة المطبوعة على الشهادة,${qa.printedPercentage}%`);
+      }
+      csvRows.push(`تاريخ الإرسال,${payload.submittedAt}`);
+      csvRows.push('');
+      csvRows.push('المادة,الدرجة');
+      qa.subjects.forEach(s => {
+        csvRows.push(`"${s.subjectName}",${s.mark}`);
       });
     } else {
       csvRows.push(`المسار الأكاديمي,"${payload.track}"`);

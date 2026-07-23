@@ -41,6 +41,9 @@ namespace StudentRegistry.Application.DTOs
 
         // Kuwaiti specific fields
         public KuwaitiDataCreateDto? KuwaitiData { get; set; }
+
+        // Qatari specific fields
+        public QatariDataCreateDto? QatariData { get; set; }
     }
 
     public class KuwaitiDataCreateDto
@@ -65,6 +68,25 @@ namespace StudentRegistry.Application.DTOs
         public string SubjectName { get; set; } = string.Empty;
         public decimal Obtained { get; set; }
         // Max mark is fixed server-side (KuwaitiConstants) — never accepted from the client.
+    }
+
+    public class QatariDataCreateDto
+    {
+        // The 7 scientific-track subjects — max mark is fixed server-side (§1.2), never client-supplied.
+        public List<QatariSubjectMarkCreateDto>? Subjects { get; set; }
+
+        // §1.3 — documentation-only, never fed into the calculation.
+        public decimal? IslamicEducationMark { get; set; }
+
+        // §1.5 — documentation-only comparison figures from the printed certificate (out of 800).
+        public decimal? PrintedTotal { get; set; }
+        public decimal? PrintedPercentage { get; set; }
+    }
+
+    public class QatariSubjectMarkCreateDto
+    {
+        public string SubjectName { get; set; } = string.Empty;
+        public decimal Mark { get; set; }
     }
 
     public class SaudiGradeCreateDto
@@ -119,6 +141,8 @@ namespace StudentRegistry.Application.DTOs
         public List<StandardGradeResponseDto>? StandardGrades { get; set; }
         public KuwaitiTotalsResponseDto? KuwaitiTotals { get; set; }
         public List<KuwaitiGradeResponseDto>? KuwaitiGrades { get; set; }
+        public QatariTotalsResponseDto? QatariTotals { get; set; }
+        public List<QatariGradeResponseDto>? QatariGrades { get; set; }
     }
 
     public class KuwaitiTotalsResponseDto
@@ -144,6 +168,23 @@ namespace StudentRegistry.Application.DTOs
         public string SubjectName { get; set; } = string.Empty;
         public decimal Obtained { get; set; }
         public decimal MaxMark { get; set; }
+    }
+
+    public class QatariTotalsResponseDto
+    {
+        public decimal FinalTotal { get; set; }   // out of 700
+        public decimal Percentage { get; set; }
+        public decimal? IslamicEducationMark { get; set; } // documentation-only, غير محتسبة
+        public decimal? PrintedTotal { get; set; }          // out of 800, documentation-only
+        public decimal? PrintedPercentage { get; set; }
+        public string? ComparisonNote { get; set; }
+        public string Disclaimer { get; set; } = string.Empty;
+    }
+
+    public class QatariGradeResponseDto
+    {
+        public string SubjectName { get; set; } = string.Empty;
+        public decimal Mark { get; set; }
     }
 
     public class SaudiTotalsResponseDto

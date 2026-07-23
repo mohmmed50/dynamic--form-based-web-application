@@ -15,6 +15,7 @@ USE [StudentRegistryDb];
 GO
 
 -- 2. Drop existing tables if they exist (in reverse order of foreign keys)
+IF OBJECT_ID('dbo.QatariStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.QatariStudentTotals;
 IF OBJECT_ID('dbo.KuwaitiStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.KuwaitiStudentTotals;
 IF OBJECT_ID('dbo.StandardStudentGrades', 'U') IS NOT NULL DROP TABLE dbo.StandardStudentGrades;
 IF OBJECT_ID('dbo.IGStudentGradeCounts', 'U') IS NOT NULL DROP TABLE dbo.IGStudentGradeCounts;
@@ -158,6 +159,22 @@ CREATE TABLE dbo.KuwaitiStudentTotals (
     HasSecondAttempt BIT NOT NULL,
     CONSTRAINT PK_KuwaitiStudentTotals PRIMARY KEY CLUSTERED (StudentId ASC),
     CONSTRAINT FK_KuwaitiStudentTotals_Students_StudentId FOREIGN KEY (StudentId)
+        REFERENCES dbo.Students (Id) ON DELETE CASCADE
+);
+GO
+
+-- 10. Create QatariStudentTotals Table (One-to-One with Students)
+-- IslamicEducationMark/PrintedTotal/PrintedPercentage are documentation-only and never feed
+-- the calculation (FinalTotal/Percentage are computed from the 7 scientific-track subjects only).
+CREATE TABLE dbo.QatariStudentTotals (
+    StudentId INT NOT NULL,
+    FinalTotal DECIMAL(6,2) NOT NULL,       -- out of 700
+    Percentage DECIMAL(5,2) NOT NULL,
+    IslamicEducationMark DECIMAL(5,2) NULL,
+    PrintedTotal DECIMAL(6,2) NULL,          -- out of 800, as printed on the certificate
+    PrintedPercentage DECIMAL(5,2) NULL,
+    CONSTRAINT PK_QatariStudentTotals PRIMARY KEY CLUSTERED (StudentId ASC),
+    CONSTRAINT FK_QatariStudentTotals_Students_StudentId FOREIGN KEY (StudentId)
         REFERENCES dbo.Students (Id) ON DELETE CASCADE
 );
 GO

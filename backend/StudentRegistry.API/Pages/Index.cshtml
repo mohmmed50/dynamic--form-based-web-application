@@ -542,6 +542,65 @@
         </div>
         <p class="section-desc" style="margin-top: 1rem;">هذه النتيجة تقديرية ويجب تأكيدها رسمياً من مكتب تنسيق القبول بالجامعات والمعاهد المصرية.</p>
       </div>
+
+      <!-- Qatari Certificate Calculator Container -->
+      <div id="qatari-grades-container" style="display: none;">
+        <div id="qatari-track-blocked-alert" class="alert alert-danger" style="display: none; margin-bottom: 1rem;">
+          قائمة مواد هذا المسار غير معتمدة بعد في النظام — يرجى مراجعة مكتب تنسيق القبول بالجامعات والمعاهد المصرية.
+        </div>
+
+        <div id="qatari-grade-block" style="display: none;">
+          <div class="table-responsive">
+            <table class="grades-table">
+              <thead>
+                <tr>
+                  <th class="col-num">#</th>
+                  <th class="col-subject">اسم المادة</th>
+                  <th class="col-grade">الدرجة</th>
+                  <th class="col-weight">الدرجة العظمى</th>
+                </tr>
+              </thead>
+              <tbody id="qatari-subjects-body">
+                <!-- Dynamically populated: 7 scientific-track subjects -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="qatari-islamic-education-mark">درجة التربية الإسلامية <span style="color: var(--text-muted, #888);">(للتوثيق فقط — غير محتسبة في المعادلة)</span></label>
+            <input type="number" id="qatari-islamic-education-mark" class="form-control" min="0" max="100" step="any" placeholder="اختياري">
+          </div>
+
+          <div class="form-group" style="margin-top: 1rem;">
+            <label style="font-weight: 600;">بيانات المجموع المطبوع على الشهادة <span style="color: var(--text-muted, #888);">(اختياري — للمقارنة فقط، من 800)</span></label>
+            <div class="result-row-flex">
+              <div class="result-flex-item" style="flex-direction: column; align-items: flex-start;">
+                <label for="qatari-printed-total" style="font-weight: 400;">المجموع المطبوع (من 800)</label>
+                <input type="number" id="qatari-printed-total" class="form-control" min="0" max="800" step="any" placeholder="اختياري">
+              </div>
+              <div class="result-flex-item" style="flex-direction: column; align-items: flex-start;">
+                <label for="qatari-printed-percentage" style="font-weight: 400;">النسبة المطبوعة (%)</label>
+                <input type="number" id="qatari-printed-percentage" class="form-control" min="0" max="100" step="any" placeholder="اختياري">
+              </div>
+            </div>
+          </div>
+
+          <div class="result-box" style="margin-top: 1.5rem;">
+            <div class="result-row-flex">
+              <div class="result-flex-item">
+                <div class="result-title-label">المجموع (من 700):</div>
+                <div class="result-value" id="qatari-final-total">0.00 / 700</div>
+              </div>
+              <div class="result-flex-item" style="border-right: 1px solid var(--border-color); padding-right: 1.5rem;">
+                <div class="result-title-label">النسبة المئوية:</div>
+                <div class="result-value" id="qatari-percentage">0.00%</div>
+              </div>
+            </div>
+          </div>
+          <p class="section-desc" style="margin-top: 1rem;" id="qatari-comparison-note"></p>
+          <p class="section-desc">هذه النتيجة تقديرية ويجب تأكيدها رسمياً من مكتب تنسيق القبول بالجامعات والمعاهد المصرية.</p>
+        </div>
+      </div>
     </section>
 
     <!-- Form Action Buttons -->
