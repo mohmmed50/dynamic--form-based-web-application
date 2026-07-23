@@ -13,10 +13,47 @@ namespace StudentRegistry.Application.Validators
                 .MaximumLength(100).WithMessage("يجب ألا يزيد اسم الطالب عن 100 حرف.")
                 .Must(NotContainHtml).WithMessage("اسم الطالب غير صالح ولا يمكن أن يحتوي على رموز أو وسوم HTML.");
 
+            RuleFor(x => x.StudentNameEn)
+                .NotEmpty().WithMessage("الرجاء إدخال اسم الطالب بالإنجليزية.")
+                .MaximumLength(100).WithMessage("يجب ألا يزيد الاسم بالإنجليزية عن 100 حرف.")
+                .Must(NotContainHtml).WithMessage("الاسم بالإنجليزية غير صالح ولا يمكن أن يحتوي على رموز أو وسوم HTML.");
+
             RuleFor(x => x.NationalId)
                 .NotEmpty().WithMessage("الرجاء إدخال الرقم القومي.")
                 .Length(8, 20).WithMessage("الرجاء إدخال رقم قومي صحيح (بين 8 و 20 خانة).")
                 .Must(NotContainHtml).WithMessage("الرقم القومي غير صالح ولا يمكن أن يحتوي على رموز أو وسوم HTML.");
+
+            RuleFor(x => x.Phone)
+                .NotEmpty().WithMessage("الرجاء إدخال رقم هاتف الطالب.")
+                .Matches(@"^[0-9+\s]{8,20}$").WithMessage("الرجاء إدخال رقم هاتف صحيح.");
+
+            RuleFor(x => x.Email)
+                .NotEmpty().WithMessage("الرجاء إدخال البريد الإلكتروني.")
+                .EmailAddress().WithMessage("الرجاء إدخال بريد إلكتروني صحيح.");
+
+            RuleFor(x => x.GuardianName)
+                .NotEmpty().WithMessage("الرجاء إدخال اسم ولي الأمر.")
+                .MaximumLength(100).WithMessage("يجب ألا يزيد اسم ولي الأمر عن 100 حرف.")
+                .Must(NotContainHtml).WithMessage("اسم ولي الأمر غير صالح ولا يمكن أن يحتوي على رموز أو وسوم HTML.");
+
+            RuleFor(x => x.GuardianPhone)
+                .NotEmpty().WithMessage("الرجاء إدخال رقم هاتف ولي الأمر.")
+                .Matches(@"^[0-9+\s]{8,20}$").WithMessage("الرجاء إدخال رقم هاتف صحيح لولي الأمر.");
+
+            RuleFor(x => x.GuardianRelation)
+                .NotEmpty().WithMessage("الرجاء اختيار صلة القرابة بولي الأمر.");
+
+            RuleFor(x => x.AddressGov)
+                .NotEmpty().WithMessage("الرجاء اختيار المحافظة.");
+
+            RuleFor(x => x.AddressCenter)
+                .NotEmpty().WithMessage("الرجاء إدخال المركز/القسم.");
+
+            RuleFor(x => x.AddressStreet)
+                .NotEmpty().WithMessage("الرجاء إدخال اسم الشارع.");
+
+            RuleFor(x => x.AddressBuilding)
+                .NotEmpty().WithMessage("الرجاء إدخال رقم المبنى.");
 
             RuleFor(x => x.Certification)
                 .NotEmpty().WithMessage("الرجاء اختيار نوع الشهادة المعادلة.");

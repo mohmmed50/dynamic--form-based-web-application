@@ -1,0 +1,558 @@
+@page "/"
+@model StudentRegistry.API.Pages.IndexModel
+@{
+    ViewData["Title"] = "تسجيل الطلاب";
+}
+
+<div class="container">
+  <!-- Header -->
+  <header class="app-header">
+    <h1 class="app-title">استمارة تسجيل درجات الطلاب للشهادات المعادلة</h1>
+    <p class="app-subtitle">يرجى تعبئة كافة الحقول المطلوبة بدقة للحفظ وحساب الدرجة المتحصلة</p>
+  </header>
+
+  <!-- Progress steps -->
+  <div class="step-container" id="step-bar-container">
+    <div class="step-progress-bar" id="step-progress-bar"></div>
+    <div class="step-item active" id="step-item-1" title="الصورة الشخصية">١</div>
+    <div class="step-item" id="step-item-2" title="البيانات الشخصية">٢</div>
+    <div class="step-item" id="step-item-3" title="الشهادة والمسار">٣</div>
+    <div class="step-item" id="step-item-4" title="السنة الدراسية">٤</div>
+    <div class="step-item" id="step-item-5" title="الدرجات">٥</div>
+  </div>
+
+  <!-- Alert Message Container -->
+  <div id="form-alert" class="alert alert-danger" role="alert"></div>
+
+  <!-- Main Registration Form -->
+  <form id="student-reg-form" novalidate>
+
+    <!-- Section A: Photo Upload -->
+    <section id="section-photo" class="form-section">
+      <div class="section-header">
+        <span class="section-number">أ</span>
+        <h2 class="section-title">إضافة الصورة الشخصية</h2>
+      </div>
+      <p class="section-desc">صورة 4×6 | خلفية بيضاء | تصوير واضح وحديث</p>
+
+      <div class="upload-wrapper" id="upload-wrapper">
+        <div class="upload-icon">📷</div>
+        <div class="upload-text">
+          <span>اسحب وأسقط الصورة هنا</span> أو اضغط للتصفح من جهازك
+        </div>
+        <input type="file" id="photo-input" accept="image/*" required>
+      </div>
+
+      <div class="photo-preview-container" id="photo-preview-container">
+        <img src="" alt="معاينة الصورة الشخصية" class="photo-preview" id="photo-preview">
+        <div class="photo-meta" id="photo-meta"></div>
+        <div class="photo-feedback" id="photo-feedback"></div>
+      </div>
+    </section>
+
+    <!-- Section B: Personal Details -->
+    <section id="section-details" class="form-section">
+      <div class="section-header">
+        <span class="section-number">ب</span>
+        <h2 class="section-title">البيانات الشخصية للطالب</h2>
+      </div>
+
+      <!-- Sub-card: Student Info -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-label">بيانات الطالب</div>
+          <div class="info-card-subtitle">المعلومات الأساسية وبيانات التواصل</div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="student-name-ar">الاسم بالكامل عربي <span class="required">*</span></label>
+            <input type="text" id="student-name-ar" class="form-control" placeholder="مثال: محمد أحمد علي حسن" required maxlength="100">
+          </div>
+          <div class="form-group">
+            <label for="student-name-en">الاسم بالكامل انجليزي <span class="required">*</span></label>
+            <input type="text" id="student-name-en" class="form-control" placeholder="e.g. Mohamed Ahmed Ali Hassan" required maxlength="100">
+          </div>
+          <div class="form-group">
+            <label for="national-id">الرقم القومي <span class="required">*</span></label>
+            <input type="text" id="national-id" class="form-control" placeholder="أدخل الرقم القومي المكون من 14 رقم" required maxlength="14">
+          </div>
+          <div class="form-group">
+            <label for="student-phone">رقم هاتف الطالب <span class="required">*</span></label>
+            <input type="tel" id="student-phone" class="form-control" placeholder="مثال: 01xxxxxxxxx" required>
+          </div>
+          <div class="form-group form-group-full">
+            <label for="student-email">الايميل الشخصي للطالب <span class="required">*</span></label>
+            <input type="email" id="student-email" class="form-control" placeholder="example@email.com" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub-card: Guardian Info -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-label">بيانات ولي الأمر</div>
+          <div class="info-card-subtitle">معلومات ولي الأمر المسؤول</div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="guardian-name">اسم ولي الأمر <span class="required">*</span></label>
+            <input type="text" id="guardian-name" class="form-control" placeholder="أدخل الاسم بالكامل" required maxlength="100">
+          </div>
+          <div class="form-group">
+            <label for="guardian-relation">صلة القرابة <span class="required">*</span></label>
+            <select id="guardian-relation" class="form-control" required>
+              <option value="">-- اختر صلة القرابة --</option>
+              <optgroup label="قرابة الدرجة الأولى">
+                <option value="الأب">الأب</option>
+                <option value="الأم">الأم</option>
+                <option value="الأخ">الأخ</option>
+                <option value="الأخت">الأخت</option>
+                <option value="الابن">الابن</option>
+                <option value="البنت">البنت</option>
+                <option value="الزوج">الزوج</option>
+                <option value="الزوجة">الزوجة</option>
+              </optgroup>
+              <optgroup label="قرابة الدرجة الثانية">
+                <option value="الجد">الجد</option>
+                <option value="الجدة">الجدة</option>
+                <option value="العم">العم</option>
+                <option value="العمة">العمة</option>
+                <option value="الخال">الخال</option>
+                <option value="الخالة">الخالة</option>
+                <option value="ابن العم">ابن العم</option>
+                <option value="ابنة العم">ابنة العم</option>
+                <option value="ابن الخال">ابن الخال</option>
+                <option value="ابنة الخال">ابنة الخال</option>
+                <option value="الحفيد">الحفيد</option>
+                <option value="الحفيدة">الحفيدة</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="form-group form-group-full">
+            <label for="guardian-phone">رقم هاتف ولي الأمر <span class="required">*</span></label>
+            <input type="tel" id="guardian-phone" class="form-control" placeholder="مثال: 01xxxxxxxxx" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub-card: Address -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-label">عنوان السكن</div>
+          <div class="info-card-subtitle">الحقول المميزة بـ <span style="color:var(--danger-color)">*</span> إلزامية</div>
+        </div>
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label for="address-gov">المحافظة <span class="required">*</span></label>
+            <select id="address-gov" class="form-control" required>
+              <option value="">-- اختر المحافظة --</option>
+              <optgroup label="محافظات الوجه البحري">
+                <option value="الإسكندرية">الإسكندرية</option>
+                <option value="البحيرة">البحيرة</option>
+                <option value="الغربية">الغربية</option>
+                <option value="المنوفية">المنوفية</option>
+                <option value="القليوبية">القليوبية</option>
+                <option value="الشرقية">الشرقية</option>
+                <option value="الدقهلية">الدقهلية</option>
+                <option value="كفر الشيخ">كفر الشيخ</option>
+                <option value="دمياط">دمياط</option>
+              </optgroup>
+              <optgroup label="محافظات الإقليم">
+                <option value="القاهرة">القاهرة</option>
+                <option value="الجيزة">الجيزة</option>
+                <option value="بورسعيد">بورسعيد</option>
+                <option value="الإسماعيلية">الإسماعيلية</option>
+                <option value="السويس">السويس</option>
+              </optgroup>
+              <optgroup label="محافظات الوجه القبلي">
+                <option value="بني سويف">بني سويف</option>
+                <option value="الفيوم">الفيوم</option>
+                <option value="المنيا">المنيا</option>
+                <option value="أسيوط">أسيوط</option>
+                <option value="سوهاج">سوهاج</option>
+                <option value="قنا">قنا</option>
+                <option value="الأقصر">الأقصر</option>
+                <option value="أسوان">أسوان</option>
+              </optgroup>
+              <optgroup label="محافظات الحدود">
+                <option value="شمال سيناء">شمال سيناء</option>
+                <option value="جنوب سيناء">جنوب سيناء</option>
+                <option value="البحر الأحمر">البحر الأحمر</option>
+                <option value="الوادي الجديد">الوادي الجديد</option>
+                <option value="مطروح">مطروح</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="address-center">المركز / المدينة <span class="required">*</span></label>
+            <input type="text" id="address-center" class="form-control" placeholder="مثال: مدينة نصر" required>
+          </div>
+          <div class="form-group">
+            <label for="address-village">القرية / الحي</label>
+            <input type="text" id="address-village" class="form-control" placeholder="اختياري">
+          </div>
+          <div class="form-group">
+            <label for="address-street">اسم الشارع <span class="required">*</span></label>
+            <input type="text" id="address-street" class="form-control" placeholder="مثال: شارع التحرير" required>
+          </div>
+          <div class="form-group">
+            <label for="address-building">رقم العمارة <span class="required">*</span></label>
+            <input type="text" id="address-building" class="form-control" placeholder="مثال: 15" required>
+          </div>
+          <div class="form-group">
+            <label for="address-floor">رقم الدور</label>
+            <input type="text" id="address-floor" class="form-control" placeholder="اختياري">
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Section C: Certification Type -->
+    <section id="section-cert" class="form-section active">
+      <div class="section-header">
+        <span class="section-number">ج</span>
+        <h2 class="section-title">نوع الشهادة المعادلة</h2>
+      </div>
+
+      <div class="form-group">
+        <label for="cert-select">ما هو نوع شهادتك المعادلة؟ <span class="required">*</span></label>
+        <select id="cert-select" class="form-control" required>
+          <option value="">-- اختر --</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Section D: Academic Track (Dynamic) -->
+    <section id="section-track" class="form-section">
+      <div class="section-header">
+        <span class="section-number">د</span>
+        <h2 class="section-title">المسار الأكاديمي</h2>
+      </div>
+
+      <div class="form-group">
+        <label for="track-select">اختر مسارك الأكاديمي <span class="required">*</span></label>
+        <select id="track-select" class="form-control" required disabled>
+          <option value="">-- اختر --</option>
+        </select>
+        <div class="locked-indicator" id="track-locked-msg">
+          <span>🔒</span> تم تثبيت المسار. لتعديله، الرجاء إعادة اختيار نوع الشهادة أعلاه.
+        </div>
+      </div>
+    </section>
+
+    <!-- Section E: Years of Study -->
+    <section id="section-year" class="form-section">
+      <div class="section-header">
+        <span class="section-number">هـ</span>
+        <h2 class="section-title">السنة الدراسية</h2>
+      </div>
+
+      <div class="form-group">
+        <label for="year-select">كم عدد سنوات الدراسة التي قضيتها؟ <span class="required">*</span></label>
+        <select id="year-select" class="form-control" required>
+          <option value="">-- اختر --</option>
+          <option value="أولى ثانوي">أولى ثانوي</option>
+          <option value="تانية ثانوي">تانية ثانوي</option>
+          <option value="تالتة ثانوي">تالتة ثانوي</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Section F: Grades Entry Table & IG Calculator -->
+    <section id="section-grades" class="form-section">
+      <div class="section-header">
+        <span class="section-number">و</span>
+        <h2 class="section-title" id="section-grades-title">جدول إدخال الدرجات</h2>
+      </div>
+      <p class="section-desc" id="section-grades-desc">أدخل الدرجة والنسبة الموزونة لكل مادة أدناه. سيتم احتساب الدرجة المتحصلة تلقائياً.</p>
+
+      <!-- Standard Grades Table (Non-IG) -->
+      <div id="non-ig-grades-container">
+        <div id="standard-table-wrapper">
+          <div class="table-responsive">
+            <table class="grades-table">
+              <thead>
+                <tr>
+                  <th class="col-num" id="th-num">#</th>
+                  <th class="col-subject" id="th-subject">اسم المادة</th>
+                  <th class="col-grade" id="th-grade">الدرجة</th>
+                  <th class="col-weight" id="th-weight">الوزن النسبي (%)</th>
+                  <th class="col-achieved" id="th-achieved">الدرجة المتحصلة</th>
+                </tr>
+              </thead>
+              <tbody id="grades-table-body">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Saudi Year-by-Year split tables container -->
+        <div id="saudi-multi-tables-container" style="display: none;">
+          <!-- Dynamically populated year cards -->
+        </div>
+
+        <!-- Saudi Certificate Summary Box -->
+        <div id="saudi-summary-box" style="display: none; margin-top: 1.5rem; background: var(--primary-light); border: 1px solid var(--primary-border); padding: 1.5rem; border-radius: var(--radius-md);">
+          <div class="result-row-flex">
+            <div class="result-flex-item">
+              <div class="result-title-label">مجموع الدرجات المحرزة:</div>
+              <div class="result-value" id="saudi-total-achieved">0</div>
+            </div>
+            <div class="result-flex-item">
+              <div class="result-title-label">مجموع المعاملات:</div>
+              <div class="result-value" id="saudi-total-coefficients">0</div>
+            </div>
+            <div class="result-flex-item">
+              <div class="result-title-label">المجموع الموزون الكلي:</div>
+              <div class="result-value" id="saudi-total-weighted">0</div>
+            </div>
+            <div class="result-flex-item" style="border-right: 1px solid var(--primary-border); padding-right: 1rem;">
+              <div class="result-title-label">النسبة المئوية النهائية (GPA):</div>
+              <div class="result-value" id="saudi-final-gpa">0.00%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IG Grades Calculator Container -->
+      <div id="ig-grades-container" style="display: none;">
+        <div class="ig-calculator">
+
+          <!-- Subsystem IGCSE / O-Level -->
+          <div id="ig-sub-igcse" class="ig-subsystem" style="display: none;">
+            <div class="ig-subsystem-group">
+              <h4 class="ig-subsystem-title">[IGCSE / O-Level] النظام القديم (الحروف)</h4>
+              <div class="grade-grid">
+                <div class="grade-row">
+                  <label class="grade-label">A* (A Star)</label>
+                  <select class="form-control grade-dropdown ig-grade-input" data-grade-type="igcse-legacy" data-grade="A_STAR" aria-label="A Star count">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                  </select>
+                </div>
+                <div class="grade-row">
+                  <label class="grade-label">A</label>
+                  <select class="form-control grade-dropdown ig-grade-input" data-grade-type="igcse-legacy" data-grade="A" aria-label="A count">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                  </select>
+                </div>
+                <div class="grade-row">
+                  <label class="grade-label">B</label>
+                  <select class="form-control grade-dropdown ig-grade-input" data-grade-type="igcse-legacy" data-grade="B" aria-label="B count">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                  </select>
+                </div>
+                <div class="grade-row">
+                  <label class="grade-label">C</label>
+                  <select class="form-control grade-dropdown ig-grade-input" data-grade-type="igcse-legacy" data-grade="C" aria-label="C count">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="ig-subsystem-group" style="margin-top: 1.5rem; border-top: 1px dashed var(--border-color); padding-top: 1.5rem;">
+              <h4 class="ig-subsystem-title">[IGCSE Grade 9-4] النظام الجديد (الأرقام)</h4>
+              <div class="grade-grid">
+                <div class="grade-row">
+                  <label class="grade-label">9</label>
+                  <select class="form-control grade-dropdown ig-grade-input" data-grade-type="igcse-numeric" data-grade="9" aria-label="9 count">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                  </select>
+                </div>
+                <div class="grade-row">
+                  <label class="grade-label">8</label>
+                  <select class="form-control grade-dropdown ig-grade-input" data-grade-type="igcse-numeric" data-grade="8" aria-label="8 count">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                  </select>
+                </div>
+                <div class="grade-row">
+                  <label class="grade-label">7</label>
+                  <select class="form-control grade-dropdown ig-grade-input" data-grade-type="igcse-numeric" data-grade="7" aria-label="7 count">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                  </select>
+                </div>
+                <div class="grade-row">
+                  <label class="grade-label">6</label>
+                  <select class="form-control grade-dropdown ig-grade-input" data-grade-type="igcse-numeric" data-grade="6" aria-label="6 count">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                  </select>
+                </div>
+                <div class="grade-row">
+                  <label class="grade-label">5</label>
+                  <select class="form-control grade-dropdown ig-grade-input" data-grade-type="igcse-numeric" data-grade="5" aria-label="5 count">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                  </select>
+                </div>
+                <div class="grade-row">
+                  <label class="grade-label">4</label>
+                  <select class="form-control grade-dropdown ig-grade-input" data-grade-type="igcse-numeric" data-grade="4" aria-label="4 count">
+                    <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subsystem AS-Levels -->
+          <div id="ig-sub-as" class="ig-subsystem" style="display: none;">
+            <h4 class="ig-subsystem-title">[AS-Levels]</h4>
+            <div class="grade-grid">
+              <div class="grade-row">
+                <label class="grade-label">A</label>
+                <select class="form-control grade-dropdown ig-grade-input" data-grade-type="as-level" data-grade="A" aria-label="A count">
+                  <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                </select>
+              </div>
+              <div class="grade-row">
+                <label class="grade-label">B</label>
+                <select class="form-control grade-dropdown ig-grade-input" data-grade-type="as-level" data-grade="B" aria-label="B count">
+                  <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                </select>
+              </div>
+              <div class="grade-row">
+                <label class="grade-label">C</label>
+                <select class="form-control grade-dropdown ig-grade-input" data-grade-type="as-level" data-grade="C" aria-label="C count">
+                  <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                </select>
+              </div>
+              <div class="grade-row">
+                <label class="grade-label">D</label>
+                <select class="form-control grade-dropdown ig-grade-input" data-grade-type="as-level" data-grade="D" aria-label="D count">
+                  <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subsystem A-Levels -->
+          <div id="ig-sub-a" class="ig-subsystem" style="display: none;">
+            <h4 class="ig-subsystem-title">[A-Levels]</h4>
+            <div class="grade-grid">
+              <div class="grade-row">
+                <label class="grade-label">A*</label>
+                <select class="form-control grade-dropdown ig-grade-input" data-grade-type="a-level" data-grade="A_STAR" aria-label="A Star count">
+                  <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                </select>
+              </div>
+              <div class="grade-row">
+                <label class="grade-label">A</label>
+                <select class="form-control grade-dropdown ig-grade-input" data-grade-type="a-level" data-grade="A" aria-label="A count">
+                  <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                </select>
+              </div>
+              <div class="grade-row">
+                <label class="grade-label">B</label>
+                <select class="form-control grade-dropdown ig-grade-input" data-grade-type="a-level" data-grade="B" aria-label="B count">
+                  <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                </select>
+              </div>
+              <div class="grade-row">
+                <label class="grade-label">C</label>
+                <select class="form-control grade-dropdown ig-grade-input" data-grade-type="a-level" data-grade="C" aria-label="C count">
+                  <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                </select>
+              </div>
+              <div class="grade-row">
+                <label class="grade-label">D</label>
+                <select class="form-control grade-dropdown ig-grade-input" data-grade-type="a-level" data-grade="D" aria-label="D count">
+                  <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modifiers -->
+          <div class="bonus-section">
+            <div class="bonus-field">
+              <label class="factor-checkbox-label">
+                <input type="checkbox" id="ig-factor-check" class="factor-checkbox">
+                تطبيق المعامل النسبي؟ (With Factor)
+              </label>
+              <div id="ig-factor-input-container" style="display: none; margin-top: 0.5rem;">
+                <input type="number" id="ig-factor-val" class="form-control bonus-input" value="1.2" min="0.1" max="5.0" step="0.1" aria-label="Factor value">
+              </div>
+            </div>
+            <div class="bonus-field">
+              <label for="ig-sports-bonus">الحافز الرياضي (%)</label>
+              <input type="number" id="ig-sports-bonus" class="form-control bonus-input" value="0" min="0" max="30" step="0.5">
+            </div>
+          </div>
+
+          <!-- Result Box -->
+          <div class="result-box">
+            <div class="result-row-flex">
+              <div class="result-flex-item">
+                <div class="result-title-label">النسبة المئوية المحسوبة:</div>
+                <div class="result-value" id="ig-percentage-val">0.00%</div>
+              </div>
+              <div class="result-flex-item" style="border-right: 1px solid var(--border-color); padding-right: 1.5rem;">
+                <div class="result-title-label">المجموع الحكومي المعادل:</div>
+                <div class="result-value" id="ig-gov-val">0.0 / 410</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Form Action Buttons -->
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="btn-submit">حفظ وإرسال البيانات 💾</button>
+      <button type="reset" class="btn btn-secondary" onclick="location.reload();">إعادة تعيين 🔄</button>
+    </div>
+
+  </form>
+
+  <!-- Success Confirmation Dialog Screen -->
+  <div class="success-screen" id="success-screen">
+    <div class="success-icon">✓</div>
+    <h2 class="success-title">تم حفظ البيانات بنجاح</h2>
+    <p class="success-desc" id="receipt-mode">تم إرسال وحفظ بيانات استمارة الطالب.</p>
+
+    <!-- Receipt Summary Card -->
+    <div class="receipt-card">
+      <div class="receipt-row">
+        <span class="receipt-label">اسم الطالب:</span>
+        <span class="receipt-val" id="receipt-name">-</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-label">الرقم القومي:</span>
+        <span class="receipt-val" id="receipt-id">-</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-label">نوع الشهادة:</span>
+        <span class="receipt-val" id="receipt-cert">-</span>
+      </div>
+      <div class="receipt-row" id="receipt-program-row" style="display: none;">
+        <span class="receipt-label">برنامج الـ IG:</span>
+        <span class="receipt-val" id="receipt-program">-</span>
+      </div>
+      <div class="receipt-row" id="receipt-year-row">
+        <span class="receipt-label" id="receipt-year-label">السنة الدراسية:</span>
+        <span class="receipt-val" id="receipt-year">-</span>
+      </div>
+      <div class="receipt-row" id="receipt-saudi-gpa-row" style="display: none;">
+        <span class="receipt-label">النسبة المئوية النهائية (GPA):</span>
+        <span class="receipt-val" id="receipt-saudi-gpa">-</span>
+      </div>
+    </div>
+
+    <!-- Action buttons on success -->
+    <div class="success-actions">
+      <div class="btn-group-row">
+        <button class="btn btn-primary" id="btn-download-json" style="flex:1;">تنزيل ملف البيانات JSON 📥</button>
+        <button class="btn btn-secondary" id="btn-download-csv" style="flex:1;">تنزيل ملف إكسل CSV 📊</button>
+      </div>
+      <button class="btn btn-secondary" id="btn-new-form">تسجيل استمارة جديدة 🔄</button>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+  <script src="~/js/conditional.js"></script>
+  <script src="~/js/form-handler.js"></script>
+  <script src="~/js/app.js"></script>
+}

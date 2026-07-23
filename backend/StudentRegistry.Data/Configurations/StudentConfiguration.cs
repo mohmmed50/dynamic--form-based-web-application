@@ -16,12 +16,58 @@ namespace StudentRegistry.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(100);
 
+            builder.Property(s => s.StudentNameEn)
+                .IsRequired()
+                .HasMaxLength(100);
+
             builder.Property(s => s.NationalId)
                 .IsRequired()
                 .HasMaxLength(20);
 
             builder.HasIndex(s => s.NationalId)
                 .IsUnique();
+
+            builder.Property(s => s.Phone)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            builder.Property(s => s.Email)
+                .IsRequired()
+                .HasMaxLength(150);
+
+            builder.Property(s => s.GuardianName)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            builder.Property(s => s.GuardianPhone)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            builder.Property(s => s.GuardianRelation)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            builder.Property(s => s.AddressGov)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            builder.Property(s => s.AddressCenter)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            builder.Property(s => s.AddressVillage)
+                .HasMaxLength(100);
+
+            builder.Property(s => s.AddressStreet)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            builder.Property(s => s.AddressBuilding)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            builder.Property(s => s.AddressFloor)
+                .HasMaxLength(20);
 
             builder.Property(s => s.Certification)
                 .IsRequired()

@@ -19,6 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 1. Configure services
 builder.Services.AddControllers();
+builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -28,19 +29,8 @@ builder.Services.AddHealthChecks();
 // Configure SQL Server 2017 DbContext
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<StudentRegistryDbContext>(options =>
-    options.UseSqlServer(connectionString, sqlOptions => 
+    options.UseSqlServer(connectionString, sqlOptions =>
         sqlOptions.MigrationsAssembly("StudentRegistry.Data")));
-
-// Configure CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAngularFrontend", policy =>
-    {
-        policy.WithOrigins(builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? new[] { "http://localhost:4200" })
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
 
 // Configure Dependency Injection Layers
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -91,11 +81,10 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseCors("AllowAngularFrontend");
-
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapRazorPages();
 
 // Map Health Checks Endpoint
 app.MapHealthChecks("/health");

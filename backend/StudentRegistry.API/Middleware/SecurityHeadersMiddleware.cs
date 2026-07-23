@@ -21,7 +21,7 @@ namespace StudentRegistry.API.Middleware
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                 "font-src 'self' data: https://fonts.gstatic.com; " +
                 "img-src 'self' data:; " +
-                "connect-src 'self' http://localhost:5000 https://localhost:5001 http://localhost:4200; " +
+                "connect-src 'self'; " +
                 "frame-ancestors 'none'; " +
                 "form-action 'self';");
 
