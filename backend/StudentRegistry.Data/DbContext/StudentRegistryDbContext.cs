@@ -17,6 +17,9 @@ namespace StudentRegistry.Data.DbContext
         public DbSet<IgStudentGrades> IgStudentGrades => Set<IgStudentGrades>();
         public DbSet<IgStudentGradeCounts> IgStudentGradeCounts => Set<IgStudentGradeCounts>();
         public DbSet<StandardStudentGrades> StandardStudentGrades => Set<StandardStudentGrades>();
+        public DbSet<KuwaitiStudentTotals> KuwaitiStudentTotals => Set<KuwaitiStudentTotals>();
+        public DbSet<QatariStudentTotals> QatariStudentTotals => Set<QatariStudentTotals>();
+        public DbSet<OmaniStudentTotals> OmaniStudentTotals => Set<OmaniStudentTotals>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

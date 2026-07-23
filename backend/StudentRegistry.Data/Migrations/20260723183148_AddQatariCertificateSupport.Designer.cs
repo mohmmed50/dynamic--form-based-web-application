@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudentRegistry.Data.DbContext;
 
@@ -11,9 +12,11 @@ using StudentRegistry.Data.DbContext;
 namespace StudentRegistry.Data.Migrations
 {
     [DbContext(typeof(StudentRegistryDbContext))]
-    partial class StudentRegistryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723183148_AddQatariCertificateSupport")]
+    partial class AddQatariCertificateSupport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -134,24 +137,6 @@ namespace StudentRegistry.Data.Migrations
                     b.ToTable("KuwaitiStudentTotals", "dbo");
                 });
 
-            modelBuilder.Entity("StudentRegistry.Domain.Entities.OmaniStudentTotals", b =>
-                {
-                    b.Property<int>("StudentId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("FinalTotal")
-                        .HasPrecision(6, 2)
-                        .HasColumnType("decimal(6,2)");
-
-                    b.Property<decimal>("Percentage")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
-                    b.HasKey("StudentId");
-
-                    b.ToTable("OmaniStudentTotals", "dbo");
-                });
-
             modelBuilder.Entity("StudentRegistry.Domain.Entities.QatariStudentTotals", b =>
                 {
                     b.Property<int>("StudentId")
@@ -161,9 +146,21 @@ namespace StudentRegistry.Data.Migrations
                         .HasPrecision(6, 2)
                         .HasColumnType("decimal(6,2)");
 
+                    b.Property<decimal?>("IslamicEducationMark")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<decimal>("Percentage")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal?>("PrintedPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal?>("PrintedTotal")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
 
                     b.HasKey("StudentId");
 
@@ -423,17 +420,6 @@ namespace StudentRegistry.Data.Migrations
                     b.Navigation("Student");
                 });
 
-            modelBuilder.Entity("StudentRegistry.Domain.Entities.OmaniStudentTotals", b =>
-                {
-                    b.HasOne("StudentRegistry.Domain.Entities.Student", "Student")
-                        .WithOne("OmaniTotals")
-                        .HasForeignKey("StudentRegistry.Domain.Entities.OmaniStudentTotals", "StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Student");
-                });
-
             modelBuilder.Entity("StudentRegistry.Domain.Entities.QatariStudentTotals", b =>
                 {
                     b.HasOne("StudentRegistry.Domain.Entities.Student", "Student")
@@ -485,8 +471,6 @@ namespace StudentRegistry.Data.Migrations
                     b.Navigation("IgGrades");
 
                     b.Navigation("KuwaitiTotals");
-
-                    b.Navigation("OmaniTotals");
 
                     b.Navigation("QatariTotals");
 

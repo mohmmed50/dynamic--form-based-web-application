@@ -1,6 +1,8 @@
 using FluentValidation;
+using StudentRegistry.Application.Constants;
 using StudentRegistry.Application.DTOs;
 using System;
+using System.Linq;
 
 namespace StudentRegistry.Application.Validators
 {
@@ -119,7 +121,7 @@ namespace StudentRegistry.Application.Validators
                 });
             });
 
-            When(x => !IsSaudiCert(x.Certification) && !IsIgCert(x.Certification), () =>
+            When(x => !IsSaudiCert(x.Certification) && !IsIgCert(x.Certification) && !IsKuwaitiCert(x.Certification) && !IsQatariCert(x.Certification) && !IsOmaniCert(x.Certification), () =>
             {
                 RuleFor(x => x.YearOfStudy)
                     .NotEmpty().WithMessage("الرجاء اختيار السنة الدراسية.");
@@ -135,6 +137,190 @@ namespace StudentRegistry.Application.Validators
                     grade.RuleFor(g => g.WeightedPercentage).InclusiveBetween(0, 100).WithMessage("النسبة الموزونة يجب أن تكون بين 0 و 100.");
                 });
             });
+
+            When(x => IsKuwaitiCert(x.Certification), () =>
+            {
+                RuleFor(x => x.KuwaitiData)
+                    .NotNull().WithMessage("بيانات الشهادة الكويتية مطلوبة.");
+
+                When(x => x.KuwaitiData != null, () =>
+                {
+                    RuleFor(x => x.KuwaitiData!.YearsCount)
+                        .Must(y => y == KuwaitiConstants.OneYear || y == KuwaitiConstants.TwoYears || y == KuwaitiConstants.ThreeYears)
+                        .WithMessage("الرجاء اختيار عدد سنوات الدراسة (سنة واحدة أو سنتان أو ثلاث سنوات).");
+
+                    bool IsOneYear(StudentCreateDto x) => x.KuwaitiData!.YearsCount == KuwaitiConstants.OneYear;
+                    bool IsThreeYears(StudentCreateDto x) => x.KuwaitiData!.YearsCount == KuwaitiConstants.ThreeYears;
+
+                    // Grade 10 is only required/considered when the student studied three years.
+                    When(IsThreeYears, () =>
+                    {
+                        RuleFor(x => x.KuwaitiData!.Grade10Weight)
+                            .NotNull().WithMessage("الرجاء إدخال نسبة الصف العاشر من المعدل التراكمي كما هي مدونة بالشهادة.")
+                            .GreaterThan(0).WithMessage("نسبة الصف العاشر يجب أن تكون أكبر من الصفر.")
+                            .LessThanOrEqualTo(100).WithMessage("نسبة الصف العاشر يجب ألا تتجاوز 100.");
+
+                        RuleFor(x => x.KuwaitiData!.Grade10Subjects)
+                            .Must(subjects => MatchesExactKuwaitiSubjectSet(subjects, KuwaitiConstants.Grade10MaxMarks.Keys))
+                            .WithMessage("قائمة مواد الصف العاشر يجب أن تطابق تماماً المواد المعتمدة لهذا الصف، بدون نقص أو زيادة.");
+
+                        RuleForEach(x => x.KuwaitiData!.Grade10Subjects)
+                            .ChildRules(subject => ValidateKuwaitiSubjectRow(subject, KuwaitiConstants.Grade10MaxMarks));
+                    });
+
+                    // Grade 11 is not applicable at all for the "One Year" (grade 12 only) case.
+                    When(x => !IsOneYear(x), () =>
+                    {
+                        RuleFor(x => x.KuwaitiData!.Grade11Weight)
+                            .NotNull().WithMessage("الرجاء إدخال نسبة الصف الحادي عشر من المعدل التراكمي كما هي مدونة بالشهادة.")
+                            .GreaterThan(0).WithMessage("نسبة الصف الحادي عشر يجب أن تكون أكبر من الصفر.")
+                            .LessThanOrEqualTo(100).WithMessage("نسبة الصف الحادي عشر يجب ألا تتجاوز 100.");
+
+                        RuleFor(x => x.KuwaitiData!.Grade12Weight)
+                            .NotNull().WithMessage("الرجاء إدخال نسبة الصف الثاني عشر من المعدل التراكمي كما هي مدونة بالشهادة.")
+                            .GreaterThan(0).WithMessage("نسبة الصف الثاني عشر يجب أن تكون أكبر من الصفر.")
+                            .LessThanOrEqualTo(100).WithMessage("نسبة الصف الثاني عشر يجب ألا تتجاوز 100.");
+
+                        RuleFor(x => x.KuwaitiData)
+                            .Must(WeightsSumToOneHundred)
+                            .WithMessage("مجموع نسب السنوات المدخلة (كما هي مدونة بالشهادة) يجب أن يساوي 100%.");
+
+                        RuleFor(x => x.KuwaitiData!.Grade11Subjects)
+                            .Must(subjects => MatchesExactKuwaitiSubjectSet(subjects, KuwaitiConstants.Grade11MaxMarks.Keys))
+                            .WithMessage("قائمة مواد الصف الحادي عشر يجب أن تطابق تماماً المواد المعتمدة لهذا الصف، بدون نقص أو زيادة.");
+
+                        RuleForEach(x => x.KuwaitiData!.Grade11Subjects)
+                            .ChildRules(subject => ValidateKuwaitiSubjectRow(subject, KuwaitiConstants.Grade11MaxMarks));
+                    });
+
+                    // Grade 12 is always required, regardless of years count.
+                    RuleFor(x => x.KuwaitiData!.Grade12Subjects)
+                        .Must(subjects => MatchesExactKuwaitiSubjectSet(subjects, KuwaitiConstants.Grade12MaxMarks.Keys))
+                        .WithMessage("قائمة مواد الصف الثاني عشر يجب أن تطابق تماماً المواد المعتمدة لهذا الصف، بدون نقص أو زيادة.");
+
+                    RuleForEach(x => x.KuwaitiData!.Grade12Subjects)
+                        .ChildRules(subject => ValidateKuwaitiSubjectRow(subject, KuwaitiConstants.Grade12MaxMarks));
+                });
+            });
+
+            When(x => IsQatariCert(x.Certification), () =>
+            {
+                RuleFor(x => x.QatariData)
+                    .NotNull().WithMessage("بيانات الشهادة القطرية مطلوبة.");
+
+                // §1.6 — only المسار العلمي has a defined subject list today; block everything else.
+                RuleFor(x => x.Track)
+                    .Must(t => t == QatariConstants.ScientificTrack)
+                    .WithMessage(QatariConstants.NonScientificTrackError);
+
+                When(x => x.QatariData != null && x.Track == QatariConstants.ScientificTrack, () =>
+                {
+                    RuleFor(x => x.QatariData!.Subjects)
+                        .Must(subjects => MatchesExactSingleYearSubjectSet(subjects, QatariConstants.ScientificTrackSubjects))
+                        .WithMessage("قائمة المواد يجب أن تطابق تماماً مواد المسار العلمي السبع، بدون نقص أو زيادة أو تكرار.");
+
+                    RuleForEach(x => x.QatariData!.Subjects).ChildRules(ValidateSingleYearSubjectRow);
+                });
+            });
+
+            When(x => IsOmaniCert(x.Certification), () =>
+            {
+                RuleFor(x => x.OmaniData)
+                    .NotNull().WithMessage("بيانات الشهادة العمانية مطلوبة.");
+
+                When(x => x.OmaniData != null, () =>
+                {
+                    RuleFor(x => x.OmaniData!.Subjects)
+                        .Must(subjects => MatchesExactSingleYearSubjectSet(subjects, OmaniConstants.Subjects))
+                        .WithMessage("قائمة المواد يجب أن تطابق تماماً المواد السبع المعتمدة، بدون نقص أو زيادة أو تكرار.");
+
+                    RuleForEach(x => x.OmaniData!.Subjects).ChildRules(ValidateSingleYearSubjectRow);
+                });
+            });
+        }
+
+        // Shared by Qatari and Omani (both single-year, fixed-100-per-subject, 7-subject certificates).
+        private bool MatchesExactSingleYearSubjectSet(
+            System.Collections.Generic.List<SingleYearSubjectMarkCreateDto>? subjects, string[] required)
+        {
+            if (subjects == null) return false;
+            var names = subjects.Select(s => s.SubjectName).ToList();
+            if (names.Count != required.Length) return false;
+            if (names.Distinct().Count() != names.Count) return false; // no duplicates
+            return required.All(names.Contains);
+        }
+
+        private void ValidateSingleYearSubjectRow(InlineValidator<SingleYearSubjectMarkCreateDto> subject)
+        {
+            subject.RuleFor(g => g.SubjectName)
+                .NotEmpty().WithMessage("اسم المادة مطلوب.")
+                .NotEqual(SingleYearFixedTotalConstants.IslamicEducationSubject)
+                .WithMessage("مادة التربية الإسلامية لا تدخل ضمن قائمة المواد المحتسبة — الرجاء إدخال درجتها في الحقل المخصص لها.");
+
+            subject.RuleFor(g => g.Mark)
+                .InclusiveBetween(0, SingleYearFixedTotalConstants.MaxMarkPerSubject)
+                .WithMessage("درجة المادة يجب أن تكون بين 0 و100.");
+        }
+
+        private bool IsQatariCert(string cert)
+        {
+            if (string.IsNullOrEmpty(cert)) return false;
+            return cert.Contains("قطرية") || cert.Equals("qatari", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsOmaniCert(string cert)
+        {
+            if (string.IsNullOrEmpty(cert)) return false;
+            return cert.Contains("عمانية") || cert.Equals("omani", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool WeightsSumToOneHundred(KuwaitiDataCreateDto? data)
+        {
+            if (data == null) return false;
+            if (data.YearsCount == KuwaitiConstants.OneYear) return true; // grade 12 alone carries 100%
+            decimal sum = data.Grade11Weight ?? 0;
+            sum += data.Grade12Weight ?? 0;
+            if (data.YearsCount == KuwaitiConstants.ThreeYears)
+                sum += data.Grade10Weight ?? 0;
+            return Math.Abs(sum - 100m) <= 0.01m;
+        }
+
+        private void ValidateKuwaitiSubjectRow(
+            InlineValidator<KuwaitiSubjectGradeCreateDto> subject,
+            System.Collections.Generic.Dictionary<string, decimal> maxMarks)
+        {
+            subject.RuleFor(g => g.SubjectName)
+                .NotEmpty().WithMessage("اسم المادة مطلوب.")
+                .Must(NotBeExcludedKuwaitiSubject).WithMessage("هذه المادة غير محتسبة في معادلة الشهادة الكويتية.");
+
+            subject.RuleFor(g => g.Obtained)
+                .GreaterThanOrEqualTo(0).WithMessage("الدرجة المتحصلة يجب أن تكون أكبر من أو تساوي الصفر.");
+
+            subject.RuleFor(g => g)
+                .Must(g => maxMarks.TryGetValue(g.SubjectName ?? string.Empty, out var max) && g.Obtained <= max)
+                .WithMessage("الدرجة المتحصلة يجب ألا تتجاوز الدرجة العظمى الرسمية لهذه المادة.");
+        }
+
+        private bool MatchesExactKuwaitiSubjectSet(
+            System.Collections.Generic.List<KuwaitiSubjectGradeCreateDto>? subjects,
+            System.Collections.Generic.ICollection<string> required)
+        {
+            if (subjects == null) return false;
+            var names = subjects.Select(s => s.SubjectName).ToList();
+            if (names.Count != required.Count) return false;
+            return required.All(r => names.Contains(r)) && names.All(n => required.Contains(n));
+        }
+
+        private bool NotBeExcludedKuwaitiSubject(string subjectName)
+        {
+            if (string.IsNullOrEmpty(subjectName)) return true;
+            return !KuwaitiConstants.ExcludedSubjects.Contains(subjectName);
+        }
+
+        private bool IsKuwaitiCert(string cert)
+        {
+            if (string.IsNullOrEmpty(cert)) return false;
+            return cert.Contains("كويتية") || cert.Equals("kuwaiti", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool StartWithBase64Header(string photo)

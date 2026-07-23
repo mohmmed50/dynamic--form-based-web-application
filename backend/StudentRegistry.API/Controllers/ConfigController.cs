@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using StudentRegistry.Application.Constants;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace StudentRegistry.API.Controllers
 {
@@ -18,7 +20,9 @@ namespace StudentRegistry.API.Controllers
                     { "saudi", new { name = "شهادة سعودية", tracks = new[] { "المسار العام", "مسار العلوم", "مسار الإدارة والأعمال", "مسار الهندسة والتكنولوجيا", "مسار العلوم الإنسانية" } } },
                     { "qatari", new { name = "شهادة قطرية", tracks = new[] { "المسار العلمي", "المسار الأدبي والإنسانيات", "مسار التكنولوجيا" } } },
                     { "bahraini", new { name = "شهادة بحرينية", tracks = new[] { "مسار العلوم والرياضيات", "مسار اللغات والعلوم الإنسانية", "مسار العلوم التجارية" } } },
-                    { "kuwaiti", new { name = "شهادة كويتية", tracks = new[] { "القسم العلمي", "القسم الأدبي" } } }
+                    { "kuwaiti", new { name = "شهادة كويتية", tracks = new[] { "القسم العلمي", "القسم الأدبي" } } },
+                    // §1.6 — Omani has one track only; the dropdown offers a single fixed value.
+                    { "omani", new { name = "شهادة عمانية", tracks = new[] { OmaniConstants.SingleTrack } } }
                 },
                 subjects = new Dictionary<string, string[]>
                 {
@@ -74,6 +78,55 @@ namespace StudentRegistry.API.Controllers
             };
 
             return Ok(saudiConfig);
+        }
+
+        [HttpGet("subjects-kuwaiti")]
+        public IActionResult GetKuwaitiSubjectsConfig()
+        {
+            // Max marks are fixed (taken from an official Kuwaiti certificate sample) — the student
+            // only enters the obtained mark; the weight per year is entered by the student themselves
+            // since it is printed on their own certificate (see KuwaitiConstants for details).
+            static object[] ToSubjectList(Dictionary<string, decimal> maxMarks) =>
+                maxMarks.Select(kv => (object)new { name = kv.Key, maxMark = kv.Value }).ToArray();
+
+            var kuwaitiConfig = new
+            {
+                grade_10 = ToSubjectList(KuwaitiConstants.Grade10MaxMarks),
+                grade_11 = ToSubjectList(KuwaitiConstants.Grade11MaxMarks),
+                grade_12 = ToSubjectList(KuwaitiConstants.Grade12MaxMarks),
+                years_count_options = new[] { KuwaitiConstants.OneYear, KuwaitiConstants.TwoYears, KuwaitiConstants.ThreeYears }
+            };
+
+            return Ok(kuwaitiConfig);
+        }
+
+        [HttpGet("subjects-qatari")]
+        public IActionResult GetQatariSubjectsConfig()
+        {
+            var qatariConfig = new
+            {
+                scientific = QatariConstants.ScientificTrackSubjects,
+                max_mark_per_subject = SingleYearFixedTotalConstants.MaxMarkPerSubject,
+                total_max = SingleYearFixedTotalConstants.TotalMaxMark,
+                islamic_education_subject = SingleYearFixedTotalConstants.IslamicEducationSubject,
+                scientific_track_name = QatariConstants.ScientificTrack
+            };
+
+            return Ok(qatariConfig);
+        }
+
+        [HttpGet("subjects-omani")]
+        public IActionResult GetOmaniSubjectsConfig()
+        {
+            var omaniConfig = new
+            {
+                subjects = OmaniConstants.Subjects,
+                max_mark_per_subject = SingleYearFixedTotalConstants.MaxMarkPerSubject,
+                total_max = SingleYearFixedTotalConstants.TotalMaxMark,
+                islamic_education_subject = SingleYearFixedTotalConstants.IslamicEducationSubject
+            };
+
+            return Ok(omaniConfig);
         }
     }
 }

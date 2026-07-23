@@ -1,4 +1,5 @@
 using AutoMapper;
+using StudentRegistry.Application.Constants;
 using StudentRegistry.Application.DTOs;
 using StudentRegistry.Application.Interfaces;
 using StudentRegistry.Domain.Entities;
@@ -67,6 +68,18 @@ namespace StudentRegistry.Application.Services
             else if (cert.Contains("IG") || cert.Equals("ig", StringComparison.OrdinalIgnoreCase))
             {
                 ProcessIgCertificate(createDto, student);
+            }
+            else if (cert.Contains("كويتية") || cert.Equals("kuwaiti", StringComparison.OrdinalIgnoreCase))
+            {
+                ProcessKuwaitiCertificate(createDto, student);
+            }
+            else if (cert.Contains("قطرية") || cert.Equals("qatari", StringComparison.OrdinalIgnoreCase))
+            {
+                ProcessQatariCertificate(createDto, student);
+            }
+            else if (cert.Contains("عمانية") || cert.Equals("omani", StringComparison.OrdinalIgnoreCase))
+            {
+                ProcessOmaniCertificate(createDto, student);
             }
             else
             {
@@ -215,7 +228,7 @@ namespace StudentRegistry.Application.Services
             scorePercentage += sportsBonus;
 
             // Calculate Egyptian Government score out of 410
-            decimal governmentScore = (scorePercentage / 100) * 410;
+            decimal governmentScore = (scorePercentage / 100) * EquivalencyConstants.EgyptianScientificTrackTotal;
 
             student.IgGrades = new IgStudentGrades
             {
@@ -239,6 +252,189 @@ namespace StudentRegistry.Application.Services
                 grade.Student = student;
                 student.StandardGrades.Add(grade);
             }
+        }
+
+        private void ProcessKuwaitiCertificate(StudentCreateDto dto, Student student)
+        {
+            var kw = dto.KuwaitiData;
+            if (kw == null)
+                throw new ArgumentException("بيانات الشهادة الكويتية مفقودة.");
+
+            bool isOneYear = kw.YearsCount == KuwaitiConstants.OneYear;
+            bool isThreeYears = kw.YearsCount == KuwaitiConstants.ThreeYears;
+
+            decimal? grade10Percentage = null;
+            decimal? grade10Weight = null;
+            if (isThreeYears)
+            {
+                grade10Percentage = CalculateKuwaitiGradeLevelPercentage(kw.Grade10Subjects, KuwaitiConstants.Grade10MaxMarks, 10, student);
+                grade10Weight = kw.Grade10Weight ?? 0;
+            }
+
+            decimal? grade11Percentage = null;
+            decimal? grade11Weight = null;
+            if (!isOneYear)
+            {
+                grade11Percentage = CalculateKuwaitiGradeLevelPercentage(kw.Grade11Subjects, KuwaitiConstants.Grade11MaxMarks, 11, student);
+                grade11Weight = kw.Grade11Weight ?? 0;
+            }
+
+            decimal grade12Percentage = CalculateKuwaitiGradeLevelPercentage(kw.Grade12Subjects, KuwaitiConstants.Grade12MaxMarks, 12, student);
+
+            // §"One Year" — the student only has grade 12 on their certificate, so it alone carries 100%.
+            // Weights for the multi-year cases are entered by the student from their own official
+            // certificate (each year's contribution to the cumulative average is printed there),
+            // rather than derived from a hardcoded graduation-year table.
+            decimal grade12Weight = isOneYear ? 100m : (kw.Grade12Weight ?? 0);
+
+            decimal finalPercentage;
+            if (isOneYear)
+            {
+                finalPercentage = grade12Percentage;
+            }
+            else
+            {
+                finalPercentage = (grade11Percentage!.Value * grade11Weight!.Value / 100)
+                                 + (grade12Percentage * grade12Weight / 100);
+                if (isThreeYears)
+                    finalPercentage += grade10Percentage!.Value * grade10Weight!.Value / 100;
+            }
+
+            decimal equivalentTotal = (finalPercentage / 100) * EquivalencyConstants.EgyptianScientificTrackTotal;
+
+            student.KuwaitiTotals = new KuwaitiStudentTotals
+            {
+                Student = student,
+                YearsCount = kw.YearsCount,
+                Grade10Percentage = grade10Percentage.HasValue ? Math.Round(grade10Percentage.Value, 2) : null,
+                Grade11Percentage = grade11Percentage.HasValue ? Math.Round(grade11Percentage.Value, 2) : null,
+                Grade12Percentage = Math.Round(grade12Percentage, 2),
+                Grade10Weight = grade10Weight,
+                Grade11Weight = grade11Weight,
+                Grade12Weight = grade12Weight,
+                FinalPercentage = Math.Round(finalPercentage, 2),
+                EquivalentTotal = Math.Round(equivalentTotal, 2),
+                HasSecondAttempt = kw.HasSecondAttempt
+            };
+        }
+
+        // §1.3 — gradePercentage = (Σ obtained ÷ Σ fixed maxMark of counted subjects) × 100.
+        // Max marks come from the server-side KuwaitiConstants table — never accepted from the client.
+        private decimal CalculateKuwaitiGradeLevelPercentage(
+            List<KuwaitiSubjectGradeCreateDto>? subjects, Dictionary<string, decimal> maxMarks, int gradeLevel, Student student)
+        {
+            if (subjects == null || subjects.Count == 0)
+                throw new ArgumentException($"بيانات مواد الصف {gradeLevel} مفقودة.");
+
+            decimal totalObtained = 0;
+            decimal totalMax = 0;
+
+            foreach (var subject in subjects)
+            {
+                // Defence in depth: the validator already enforces an exact match against the
+                // counted-subject list (§1.1) and rejects excluded subjects (§1.2).
+                if (!maxMarks.TryGetValue(subject.SubjectName, out var maxMark))
+                    continue;
+
+                totalObtained += subject.Obtained;
+                totalMax += maxMark;
+
+                student.StandardGrades.Add(new StandardStudentGrades
+                {
+                    Student = student,
+                    YearOfStudy = gradeLevel.ToString(),
+                    SubjectName = subject.SubjectName,
+                    Grade = subject.Obtained,
+                    MaxMark = maxMark,
+                    WeightedPercentage = maxMark > 0 ? Math.Round((subject.Obtained / maxMark) * 100, 2) : 0,
+                    Achieved = subject.Obtained,
+                    GradeLevel = gradeLevel
+                });
+            }
+
+            return totalMax > 0 ? (totalObtained / totalMax) * 100 : 0;
+        }
+
+        private void ProcessQatariCertificate(StudentCreateDto dto, Student student)
+        {
+            var qa = dto.QatariData;
+            if (qa == null)
+                throw new ArgumentException("بيانات الشهادة القطرية مفقودة.");
+
+            if (dto.Track != QatariConstants.ScientificTrack)
+                throw new ArgumentException(QatariConstants.NonScientificTrackError);
+
+            var (finalTotal, percentage) = ProcessSingleYearFixedTotalCertificate(
+                qa.Subjects, QatariConstants.ScientificTrackSubjects, student,
+                "بيانات المواد والدرجات للشهادة القطرية مفقودة.");
+
+            // TODO: the source rules for Qatari do not specify an Egyptian equivalent total (unlike
+            // Kuwaiti's percentage × 4.10) — do not apply that conversion here until confirmed.
+
+            student.QatariTotals = new QatariStudentTotals
+            {
+                Student = student,
+                FinalTotal = Math.Round(finalTotal, 2),
+                Percentage = Math.Round(percentage, 2)
+            };
+        }
+
+        private void ProcessOmaniCertificate(StudentCreateDto dto, Student student)
+        {
+            var om = dto.OmaniData;
+            if (om == null)
+                throw new ArgumentException("بيانات الشهادة العمانية مفقودة.");
+
+            var (finalTotal, percentage) = ProcessSingleYearFixedTotalCertificate(
+                om.Subjects, OmaniConstants.Subjects, student,
+                "بيانات المواد والدرجات للشهادة العمانية مفقودة.");
+
+            // TODO: the source rules for Omani do not specify an Egyptian equivalent total (unlike
+            // Kuwaiti's percentage × 4.10) — do not apply that conversion here until confirmed.
+
+            student.OmaniTotals = new OmaniStudentTotals
+            {
+                Student = student,
+                FinalTotal = Math.Round(finalTotal, 2),
+                Percentage = Math.Round(percentage, 2)
+            };
+        }
+
+        // Shared by Qatari and Omani: single grade level, 7 subjects fixed at 100 each, fixed
+        // denominator 700, no weights. §1.4 — finalTotal/percentage recomputed entirely from raw
+        // marks against the certificate's fixed subject list; the client-sent percentage is never
+        // trusted, and the denominator is never derived from the submitted rows.
+        private (decimal finalTotal, decimal percentage) ProcessSingleYearFixedTotalCertificate(
+            List<SingleYearSubjectMarkCreateDto>? subjects, string[] subjectList, Student student, string missingDataMessage)
+        {
+            if (subjects == null || subjects.Count == 0)
+                throw new ArgumentException(missingDataMessage);
+
+            decimal finalTotal = 0;
+            foreach (var subject in subjects)
+            {
+                // Defence in depth: the validator already enforces an exact match against the
+                // certificate's subject list and rejects التربية الإسلامية.
+                if (!subjectList.Contains(subject.SubjectName))
+                    continue;
+
+                finalTotal += subject.Mark;
+
+                student.StandardGrades.Add(new StandardStudentGrades
+                {
+                    Student = student,
+                    YearOfStudy = "12",
+                    SubjectName = subject.SubjectName,
+                    Grade = subject.Mark,
+                    MaxMark = SingleYearFixedTotalConstants.MaxMarkPerSubject,
+                    WeightedPercentage = Math.Round((subject.Mark / SingleYearFixedTotalConstants.MaxMarkPerSubject) * 100, 2),
+                    Achieved = subject.Mark,
+                    GradeLevel = 12
+                });
+            }
+
+            decimal percentage = (finalTotal / SingleYearFixedTotalConstants.TotalMaxMark) * 100;
+            return (finalTotal, percentage);
         }
 
         private int GetIgPoints(string gradeType, string grade)

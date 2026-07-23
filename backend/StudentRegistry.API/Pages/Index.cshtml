@@ -508,6 +508,126 @@
 
         </div>
       </div>
+
+      <!-- Kuwaiti Certificate Calculator Container -->
+      <div id="kuwaiti-grades-container" style="display: none;">
+        <div class="form-group">
+          <label for="kuwaiti-years-count">عدد سنوات الدراسة <span class="required">*</span></label>
+          <select id="kuwaiti-years-count" class="form-control">
+            <option value="">-- اختر --</option>
+            <option value="One Year">سنة واحدة (الثاني عشر فقط)</option>
+            <option value="Two Years">سنتان (الحادي عشر والثاني عشر)</option>
+            <option value="Three Years">ثلاث سنوات (العاشر والحادي عشر والثاني عشر)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="factor-checkbox-label">
+            <input type="checkbox" id="kuwaiti-second-attempt">
+            هل يوجد مواد بنظام الدور الثاني؟ (دور ثاني)
+          </label>
+          <div id="kuwaiti-second-attempt-alert" class="alert alert-danger" style="display: none; margin-top: 0.5rem;">
+            تم تسجيل مواد بنظام الدور الثاني — يلزم تقديم خطاب اعتذار رسمي قبل قبول النتيجة.
+          </div>
+        </div>
+
+        <div id="kuwaiti-grade-blocks">
+          <!-- Dynamically populated: subject tables for the applicable grade levels (10 / 11 / 12),
+               each with its own "weight" input as printed on the student's own certificate. -->
+        </div>
+
+        <div id="kuwaiti-weight-sum-alert" class="alert alert-danger" style="display: none; margin-top: 0.5rem;">
+          مجموع نسب السنوات المدخلة يجب أن يساوي 100%.
+        </div>
+
+        <div class="result-box" style="margin-top: 1.5rem;">
+          <div class="result-row-flex">
+            <div class="result-flex-item">
+              <div class="result-title-label">نسبة المعدل التراكمي النهائي:</div>
+              <div class="result-value" id="kuwaiti-final-percentage">0.00%</div>
+            </div>
+            <div class="result-flex-item" style="border-right: 1px solid var(--border-color); padding-right: 1.5rem;">
+              <div class="result-title-label">النسبة المعادلة (المجموع المعادل):</div>
+              <div class="result-value" id="kuwaiti-equivalent-total">0.00 / 410</div>
+            </div>
+          </div>
+        </div>
+        <p class="section-desc" style="margin-top: 1rem;">هذه النتيجة تقديرية ويجب تأكيدها رسمياً من مكتب تنسيق القبول بالجامعات والمعاهد المصرية.</p>
+      </div>
+
+      <!-- Qatari Certificate Calculator Container -->
+      <div id="qatari-grades-container" style="display: none;">
+        <div id="qatari-track-blocked-alert" class="alert alert-danger" style="display: none; margin-bottom: 1rem;">
+          قائمة مواد هذا المسار غير معتمدة بعد في النظام — يرجى مراجعة مكتب تنسيق القبول بالجامعات والمعاهد المصرية.
+        </div>
+
+        <div id="qatari-grade-block" style="display: none;">
+          <div class="table-responsive">
+            <table class="grades-table">
+              <thead>
+                <tr>
+                  <th class="col-num">#</th>
+                  <th class="col-subject">اسم المادة</th>
+                  <th class="col-grade">الدرجة</th>
+                  <th class="col-weight">الدرجة العظمى</th>
+                </tr>
+              </thead>
+              <tbody id="qatari-subjects-body">
+                <!-- Dynamically populated: 7 scientific-track subjects -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="result-box" style="margin-top: 1.5rem;">
+            <div class="result-row-flex">
+              <div class="result-flex-item">
+                <div class="result-title-label">المجموع (من 700):</div>
+                <div class="result-value" id="qatari-final-total">0.00 / 700</div>
+              </div>
+              <div class="result-flex-item" style="border-right: 1px solid var(--border-color); padding-right: 1.5rem;">
+                <div class="result-title-label">النسبة المئوية:</div>
+                <div class="result-value" id="qatari-percentage">0.00%</div>
+              </div>
+            </div>
+          </div>
+          <p class="section-desc">هذه النتيجة تقديرية ويجب تأكيدها رسمياً من مكتب تنسيق القبول بالجامعات والمعاهد المصرية.</p>
+        </div>
+      </div>
+
+      <!-- Omani Certificate Calculator Container -->
+      <div id="omani-grades-container" style="display: none;">
+        <div id="omani-grade-block">
+          <div class="table-responsive">
+            <table class="grades-table">
+              <thead>
+                <tr>
+                  <th class="col-num">#</th>
+                  <th class="col-subject">اسم المادة</th>
+                  <th class="col-grade">الدرجة</th>
+                  <th class="col-weight">الدرجة العظمى</th>
+                </tr>
+              </thead>
+              <tbody id="omani-subjects-body">
+                <!-- Dynamically populated: 7 subjects -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="result-box" style="margin-top: 1.5rem;">
+            <div class="result-row-flex">
+              <div class="result-flex-item">
+                <div class="result-title-label">المجموع (من 700):</div>
+                <div class="result-value" id="omani-final-total">0.00 / 700</div>
+              </div>
+              <div class="result-flex-item" style="border-right: 1px solid var(--border-color); padding-right: 1.5rem;">
+                <div class="result-title-label">النسبة المئوية:</div>
+                <div class="result-value" id="omani-percentage">0.00%</div>
+              </div>
+            </div>
+          </div>
+          <p class="section-desc">هذه النتيجة تقديرية ويجب تأكيدها رسمياً من مكتب تنسيق القبول بالجامعات والمعاهد المصرية.</p>
+        </div>
+      </div>
     </section>
 
     <!-- Form Action Buttons -->
@@ -564,7 +684,7 @@
 </div>
 
 @section Scripts {
-  <script src="~/js/conditional.js"></script>
-  <script src="~/js/form-handler.js"></script>
-  <script src="~/js/app.js"></script>
+  <script src="~/js/conditional.js" asp-append-version="true"></script>
+  <script src="~/js/form-handler.js" asp-append-version="true"></script>
+  <script src="~/js/app.js" asp-append-version="true"></script>
 }

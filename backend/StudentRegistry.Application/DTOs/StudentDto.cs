@@ -39,6 +39,58 @@ namespace StudentRegistry.Application.DTOs
         // Standard certificate fields
         public string? YearOfStudy { get; set; }
         public List<StandardGradeCreateDto>? StandardGrades { get; set; }
+
+        // Kuwaiti specific fields
+        public KuwaitiDataCreateDto? KuwaitiData { get; set; }
+
+        // Qatari specific fields
+        public QatariDataCreateDto? QatariData { get; set; }
+
+        // Omani specific fields
+        public OmaniDataCreateDto? OmaniData { get; set; }
+    }
+
+    public class KuwaitiDataCreateDto
+    {
+        // "Two Years" (grade 11 + 12) or "Three Years" (grade 10 + 11 + 12) — mirrors Saudi's YearsCount.
+        public string YearsCount { get; set; } = string.Empty;
+        public bool HasSecondAttempt { get; set; }
+
+        // Weight (%) for each included grade level, as printed on the student's own certificate.
+        // Grade10Weight is only used/required when YearsCount is "Three Years".
+        public decimal? Grade10Weight { get; set; }
+        public decimal? Grade11Weight { get; set; }
+        public decimal? Grade12Weight { get; set; }
+
+        public List<KuwaitiSubjectGradeCreateDto>? Grade10Subjects { get; set; }
+        public List<KuwaitiSubjectGradeCreateDto>? Grade11Subjects { get; set; }
+        public List<KuwaitiSubjectGradeCreateDto>? Grade12Subjects { get; set; }
+    }
+
+    public class KuwaitiSubjectGradeCreateDto
+    {
+        public string SubjectName { get; set; } = string.Empty;
+        public decimal Obtained { get; set; }
+        // Max mark is fixed server-side (KuwaitiConstants) — never accepted from the client.
+    }
+
+    public class QatariDataCreateDto
+    {
+        // The 7 scientific-track subjects — max mark is fixed server-side (§1.2), never client-supplied.
+        public List<SingleYearSubjectMarkCreateDto>? Subjects { get; set; }
+    }
+
+    public class OmaniDataCreateDto
+    {
+        // The 7 counted subjects — max mark is fixed server-side (§1.2), never client-supplied.
+        public List<SingleYearSubjectMarkCreateDto>? Subjects { get; set; }
+    }
+
+    // Shared by Qatari and Omani (both single-year, fixed-100-per-subject certificates).
+    public class SingleYearSubjectMarkCreateDto
+    {
+        public string SubjectName { get; set; } = string.Empty;
+        public decimal Mark { get; set; }
     }
 
     public class SaudiGradeCreateDto
@@ -91,6 +143,58 @@ namespace StudentRegistry.Application.DTOs
         public List<SaudiGradeResponseDto>? SaudiGrades { get; set; }
         public IgGradesResponseDto? IgGrades { get; set; }
         public List<StandardGradeResponseDto>? StandardGrades { get; set; }
+        public KuwaitiTotalsResponseDto? KuwaitiTotals { get; set; }
+        public List<KuwaitiGradeResponseDto>? KuwaitiGrades { get; set; }
+        public QatariTotalsResponseDto? QatariTotals { get; set; }
+        public List<SingleYearSubjectMarkResponseDto>? QatariGrades { get; set; }
+        public OmaniTotalsResponseDto? OmaniTotals { get; set; }
+        public List<SingleYearSubjectMarkResponseDto>? OmaniGrades { get; set; }
+    }
+
+    public class KuwaitiTotalsResponseDto
+    {
+        public string YearsCount { get; set; } = string.Empty;
+        public decimal? Grade10Percentage { get; set; }
+        public decimal? Grade11Percentage { get; set; }
+        public decimal Grade12Percentage { get; set; }
+        public decimal? Grade10Weight { get; set; }
+        public decimal? Grade11Weight { get; set; }
+        public decimal Grade12Weight { get; set; }
+        // The final equivalent percentage (0-100) — the percentage form of EquivalentTotal (out of 410).
+        public decimal FinalPercentage { get; set; }
+        public decimal EquivalentTotal { get; set; }
+        public bool HasSecondAttempt { get; set; }
+        public string Disclaimer { get; set; } = string.Empty;
+        public string? SecondAttemptWarning { get; set; }
+    }
+
+    public class KuwaitiGradeResponseDto
+    {
+        public int GradeLevel { get; set; }
+        public string SubjectName { get; set; } = string.Empty;
+        public decimal Obtained { get; set; }
+        public decimal MaxMark { get; set; }
+    }
+
+    public class QatariTotalsResponseDto
+    {
+        public decimal FinalTotal { get; set; }   // out of 700
+        public decimal Percentage { get; set; }
+        public string Disclaimer { get; set; } = string.Empty;
+    }
+
+    public class OmaniTotalsResponseDto
+    {
+        public decimal FinalTotal { get; set; }   // out of 700
+        public decimal Percentage { get; set; }
+        public string Disclaimer { get; set; } = string.Empty;
+    }
+
+    // Shared by Qatari and Omani grade lists.
+    public class SingleYearSubjectMarkResponseDto
+    {
+        public string SubjectName { get; set; } = string.Empty;
+        public decimal Mark { get; set; }
     }
 
     public class SaudiTotalsResponseDto

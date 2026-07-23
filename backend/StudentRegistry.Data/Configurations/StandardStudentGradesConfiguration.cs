@@ -29,6 +29,9 @@ namespace StudentRegistry.Data.Configurations
             builder.Property(g => g.Achieved)
                 .HasPrecision(18, 2);
 
+            builder.Property(g => g.MaxMark)
+                .HasPrecision(18, 2);
+
             builder.HasIndex(g => new { g.StudentId, g.YearOfStudy });
 
             builder.HasOne(g => g.Student)

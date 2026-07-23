@@ -10,6 +10,10 @@ namespace StudentRegistry.Domain.Entities
         public decimal WeightedPercentage { get; set; }
         public decimal Achieved { get; set; }
 
+        // Kuwaiti-only fields (null for Qatari/Bahraini rows).
+        public int? GradeLevel { get; set; }
+        public decimal? MaxMark { get; set; }
+
         // Navigation property
         public virtual Student Student { get; set; } = null!;
     }

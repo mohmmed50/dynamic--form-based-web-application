@@ -15,6 +15,9 @@ USE [StudentRegistryDb];
 GO
 
 -- 2. Drop existing tables if they exist (in reverse order of foreign keys)
+IF OBJECT_ID('dbo.OmaniStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.OmaniStudentTotals;
+IF OBJECT_ID('dbo.QatariStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.QatariStudentTotals;
+IF OBJECT_ID('dbo.KuwaitiStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.KuwaitiStudentTotals;
 IF OBJECT_ID('dbo.StandardStudentGrades', 'U') IS NOT NULL DROP TABLE dbo.StandardStudentGrades;
 IF OBJECT_ID('dbo.IGStudentGradeCounts', 'U') IS NOT NULL DROP TABLE dbo.IGStudentGradeCounts;
 IF OBJECT_ID('dbo.IGStudentGrades', 'U') IS NOT NULL DROP TABLE dbo.IGStudentGrades;
@@ -120,6 +123,7 @@ CREATE NONCLUSTERED INDEX IX_IGStudentGradeCounts_StudentId ON dbo.IGStudentGrad
 GO
 
 -- 8. Create StandardStudentGrades Table (One-to-Many with Students)
+-- GradeLevel/MaxMark are Kuwaiti-only fields (NULL for Qatari/Bahraini rows).
 CREATE TABLE dbo.StandardStudentGrades (
     Id INT IDENTITY(1,1) NOT NULL,
     StudentId INT NOT NULL,
@@ -128,12 +132,63 @@ CREATE TABLE dbo.StandardStudentGrades (
     Grade DECIMAL(18,2) NOT NULL,
     WeightedPercentage DECIMAL(18,2) NOT NULL,
     Achieved DECIMAL(18,2) NOT NULL,
+    GradeLevel INT NULL,
+    MaxMark DECIMAL(18,2) NULL,
     CONSTRAINT PK_StandardStudentGrades PRIMARY KEY CLUSTERED (Id ASC),
-    CONSTRAINT FK_StandardStudentGrades_Students_StudentId FOREIGN KEY (StudentId) 
+    CONSTRAINT FK_StandardStudentGrades_Students_StudentId FOREIGN KEY (StudentId)
         REFERENCES dbo.Students (Id) ON DELETE CASCADE
 );
 GO
 
 -- Create Index on StudentId and YearOfStudy
 CREATE NONCLUSTERED INDEX IX_StandardStudentGrades_StudentId_YearOfStudy ON dbo.StandardStudentGrades (StudentId ASC, YearOfStudy ASC);
+GO
+
+-- 9. Create KuwaitiStudentTotals Table (One-to-One with Students)
+-- Grade10Percentage/Grade10Weight are NULL unless YearsCount = 'Three Years'.
+-- Grade11Percentage/Grade11Weight are NULL when YearsCount = 'One Year' (grade 12 only, 100% weight).
+-- Weights are entered by the student from their own official certificate, not derived server-side.
+CREATE TABLE dbo.KuwaitiStudentTotals (
+    StudentId INT NOT NULL,
+    YearsCount NVARCHAR(50) NOT NULL, -- 'One Year', 'Two Years', or 'Three Years'
+    Grade10Percentage DECIMAL(5,2) NULL,
+    Grade10Weight DECIMAL(5,2) NULL,
+    Grade11Percentage DECIMAL(5,2) NULL,
+    Grade11Weight DECIMAL(5,2) NULL,
+    Grade12Percentage DECIMAL(5,2) NOT NULL,
+    Grade12Weight DECIMAL(5,2) NOT NULL,
+    FinalPercentage DECIMAL(5,2) NOT NULL,
+    EquivalentTotal DECIMAL(7,2) NOT NULL,
+    HasSecondAttempt BIT NOT NULL,
+    CONSTRAINT PK_KuwaitiStudentTotals PRIMARY KEY CLUSTERED (StudentId ASC),
+    CONSTRAINT FK_KuwaitiStudentTotals_Students_StudentId FOREIGN KEY (StudentId)
+        REFERENCES dbo.Students (Id) ON DELETE CASCADE
+);
+GO
+
+-- 10. Create QatariStudentTotals Table (One-to-One with Students)
+-- No IslamicEducationMark or PrintedTotal/PrintedPercentage fields for Qatari (removed per
+-- explicit product decision) — FinalTotal/Percentage are computed from the 7 scientific-track
+-- subjects only.
+CREATE TABLE dbo.QatariStudentTotals (
+    StudentId INT NOT NULL,
+    FinalTotal DECIMAL(6,2) NOT NULL,       -- out of 700
+    Percentage DECIMAL(5,2) NOT NULL,
+    CONSTRAINT PK_QatariStudentTotals PRIMARY KEY CLUSTERED (StudentId ASC),
+    CONSTRAINT FK_QatariStudentTotals_Students_StudentId FOREIGN KEY (StudentId)
+        REFERENCES dbo.Students (Id) ON DELETE CASCADE
+);
+GO
+
+-- 11. Create OmaniStudentTotals Table (One-to-One with Students)
+-- Mathematically identical shape to QatariStudentTotals (single grade level, fixed 700
+-- denominator) — only the subject list differs. No documentation-only fields.
+CREATE TABLE dbo.OmaniStudentTotals (
+    StudentId INT NOT NULL,
+    FinalTotal DECIMAL(6,2) NOT NULL,       -- out of 700
+    Percentage DECIMAL(5,2) NOT NULL,
+    CONSTRAINT PK_OmaniStudentTotals PRIMARY KEY CLUSTERED (StudentId ASC),
+    CONSTRAINT FK_OmaniStudentTotals_Students_StudentId FOREIGN KEY (StudentId)
+        REFERENCES dbo.Students (Id) ON DELETE CASCADE
+);
 GO

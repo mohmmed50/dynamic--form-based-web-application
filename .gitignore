@@ -14,3 +14,7 @@ dist/
 # Misc
 *.log
 appsettings.Development.json
+
+# Runtime-uploaded student photos (not source)
+backend/StudentRegistry.API/wwwroot/uploads/*
+!backend/StudentRegistry.API/wwwroot/uploads/.gitkeep
