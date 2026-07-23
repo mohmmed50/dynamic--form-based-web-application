@@ -22,6 +22,12 @@ namespace StudentRegistry.Data.Configurations
             builder.Property(t => t.TotalWeighted)
                 .HasPrecision(18, 2);
 
+            builder.Property(t => t.SchoolPercentage)
+                .HasPrecision(18, 2);
+
+            builder.Property(t => t.AptitudeScore)
+                .HasPrecision(18, 2);
+
             builder.Property(t => t.FinalPercentage)
                 .HasPrecision(18, 2);
 

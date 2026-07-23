@@ -60,6 +60,8 @@ CREATE TABLE dbo.SaudiStudentTotals (
     TotalAchieved DECIMAL(18,2) NOT NULL,
     TotalWeighted DECIMAL(18,2) NOT NULL,
     TotalCoefficients INT NOT NULL,
+    SchoolPercentage DECIMAL(18,2) NOT NULL,
+    AptitudeScore DECIMAL(18,2) NOT NULL,
     FinalPercentage DECIMAL(18,2) NOT NULL,
     CONSTRAINT PK_SaudiStudentTotals PRIMARY KEY CLUSTERED (StudentId ASC),
     CONSTRAINT FK_SaudiStudentTotals_Students_StudentId FOREIGN KEY (StudentId) 

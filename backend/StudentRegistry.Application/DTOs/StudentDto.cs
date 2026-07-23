@@ -28,6 +28,7 @@ namespace StudentRegistry.Application.DTOs
         // Saudi specific fields
         public string? YearsCount { get; set; }
         public List<SaudiGradeCreateDto>? SaudiGrades { get; set; }
+        public decimal? AptitudeScore { get; set; }
 
         // IG specific fields
         public string? IgProgram { get; set; }
@@ -44,8 +45,8 @@ namespace StudentRegistry.Application.DTOs
     {
         public string YearLabel { get; set; } = string.Empty;
         public string SubjectName { get; set; } = string.Empty;
-        public int Coefficient { get; set; }
         public decimal Achieved { get; set; }
+        public decimal Weighted { get; set; }
     }
 
     public class IgGradeCountCreateDto
@@ -98,6 +99,8 @@ namespace StudentRegistry.Application.DTOs
         public decimal TotalAchieved { get; set; }
         public decimal TotalWeighted { get; set; }
         public int TotalCoefficients { get; set; }
+        public decimal SchoolPercentage { get; set; }
+        public decimal AptitudeScore { get; set; }
         public decimal FinalPercentage { get; set; }
     }
 

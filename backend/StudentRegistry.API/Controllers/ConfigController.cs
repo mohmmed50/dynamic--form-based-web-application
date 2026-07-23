@@ -34,62 +34,41 @@ namespace StudentRegistry.API.Controllers
         [HttpGet("subjects-saudi")]
         public IActionResult GetSaudiSubjectsConfig()
         {
-            var saudiConfig = new Dictionary<string, object[]>
+            // Source of truth: official Saudi weighted-grade spreadsheet.
+            // No fixed coefficients here anymore — the coefficient is derived per submission
+            // from the student's own "Achieved" and "Weighted" entries (Weighted / Achieved,
+            // must be a whole number). Duplicate subject names within a block are intentional —
+            // they represent separate exams/terms for the same subject.
+            var saudiConfig = new Dictionary<string, string[]>
             {
                 {
-                    "block_1", new object[]
+                    "block_1", new[]
                     {
-                        new { name = "مصادر المعلومات والبحث", coefficient = 3 },
-                        new { name = "الفيزياء", coefficient = 5 },
-                        new { name = "الرياضيات", coefficient = 4 },
-                        new { name = "الجغرافيا", coefficient = 3 },
-                        new { name = "الكيمياء", coefficient = 5 },
-                        new { name = "اللغة الإنجليزية", coefficient = 4 },
-                        new { name = "التقنية الرقمية", coefficient = 3 },
-                        new { name = "التنمية المستدامة", coefficient = 3 },
-                        new { name = "المهارات الحياتية", coefficient = 3 },
-                        new { name = "المواطنة الرقمية", coefficient = 3 },
-                        new { name = "علم الأرض والفضاء", coefficient = 4 },
-                        new { name = "الفقه", coefficient = 3 },
-                        new { name = "التربية الصحية والبدنية", coefficient = 4 },
-                        new { name = "الدراسات النفسية والاجتماعية", coefficient = 3 },
-                        new { name = "الدراسات الأدبية", coefficient = 3 }
+                        "اللغة الإنجليزية", "الأحياء", "الرياضيات", "الكفايات اللغوية",
+                        "التفكير الناقد", "تقنية رقمية", "الفيزياء", "اللغة الإنجليزية",
+                        "علم البيئة", "الرياضيات", "الكفايات اللغوية", "تربية مهنية",
+                        "تقنية رقمية", "اللغة الإنجليزية", "دراسات اجتماعية", "الرياضيات",
+                        "الكيمياء", "المعرفة المالية", "تقنية رقمية"
                     }
                 },
                 {
-                    "block_2", new object[]
+                    "block_2", new[]
                     {
-                        new { name = "علم الأحياء", coefficient = 4 },
-                        new { name = "التربية البدنية والدفاع عن النفس", coefficient = 5 },
-                        new { name = "اللياقة والثقافة الصحية", coefficient = 5 },
-                        new { name = "الفنون", coefficient = 3 },
-                        new { name = "الكيمياء", coefficient = 5 },
-                        new { name = "اللغة الإنجليزية", coefficient = 5 },
-                        new { name = "التوحيد", coefficient = 5 },
-                        new { name = "الكفايات اللغوية", coefficient = 3 },
-                        new { name = "التاريخ", coefficient = 5 },
-                        new { name = "التقنية الرقمية", coefficient = 3 },
-                        new { name = "الفيزياء", coefficient = 5 }
+                        "اللغة الإنجليزية", "الأحياء", "الرياضيات", "الكيمياء", "الفنون",
+                        "اللغة الإنجليزية", "التاريخ", "الأحياء", "الرياضيات", "الكيمياء",
+                        "الكفايات اللغوية", "تقنية رقمية", "الفيزياء", "اللغة الإنجليزية",
+                        "الأحياء", "الرياضيات", "الكيمياء", "تقنية رقمية"
                     }
                 },
                 {
-                    "block_3", new object[]
+                    "block_3", new[]
                     {
-                        new { name = "القرآن الكريم والتفسير", coefficient = 4 },
-                        new { name = "الكفايات اللغوية", coefficient = 5 },
-                        new { name = "علم الأحياء", coefficient = 5 },
-                        new { name = "التربية البدنية والدفاع عن النفس", coefficient = 5 },
-                        new { name = "اللغة الإنجليزية", coefficient = 5 },
-                        new { name = "التقنية الرقمية", coefficient = 3 },
-                        new { name = "التفكير الناقد", coefficient = 4 },
-                        new { name = "الفيزياء", coefficient = 5 },
-                        new { name = "علم البيئة", coefficient = 3 },
-                        new { name = "الرياضيات", coefficient = 5 },
-                        new { name = "التربية الصحية والبدنية", coefficient = 3 },
-                        new { name = "التربية المهنية", coefficient = 3 },
-                        new { name = "الدراسات الاجتماعية", coefficient = 5 },
-                        new { name = "الكيمياء", coefficient = 5 },
-                        new { name = "الحديث والثقافة الإسلامية", coefficient = 3 }
+                        "الفيزياء", "الرياضيات", "اللغة الإنجليزية", "البحث ومصادر المعلومات",
+                        "النشاط", "علوم الارض والفضاء", "الكيمياء", "تقنية رقمية",
+                        "التنمية المستدامه", "الفيزياء", "اللغة الإنجليزية", "الرياضيات",
+                        "الجغرافيا", "النشاط", "الدراسات الادبية", "علوم الارض والفضاء",
+                        "دراسات نفسية واجتماعية", "مواطنة رقمية", "مهارات حياتية 2",
+                        "التنمية المستدامه"
                     }
                 }
             };

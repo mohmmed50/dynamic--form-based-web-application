@@ -79,9 +79,19 @@ namespace StudentRegistry.Application.Validators
                 {
                     grade.RuleFor(g => g.YearLabel).NotEmpty();
                     grade.RuleFor(g => g.SubjectName).NotEmpty().WithMessage("اسم المادة مطلوب.");
-                    grade.RuleFor(g => g.Coefficient).GreaterThan(0).WithMessage("المعامل يجب أن يكون أكبر من الصفر.");
-                    grade.RuleFor(g => g.Achieved).InclusiveBetween(0, 100).WithMessage("الدرجة المحرزة يجب أن تكون بين 0 و 100.");
+                    grade.RuleFor(g => g.Achieved).GreaterThan(0).WithMessage("الدرجة المتحصلة يجب أن تكون أكبر من الصفر.");
+                    grade.RuleFor(g => g.Weighted).GreaterThan(0).WithMessage("الدرجة الموزونة يجب أن تكون أكبر من الصفر.");
+                    grade.RuleFor(g => g)
+                        .Must(HaveWholeNumberCoefficient)
+                        .WithMessage(g => $"درجات مادة \"{g.SubjectName}\" غير صحيحة: الموزونة يجب أن تكون من مضاعفات المتحصلة (المعامل = الموزونة ÷ المتحصلة يجب أن يكون رقماً صحيحاً).");
                 });
+
+                RuleFor(x => x.AptitudeScore)
+                    .NotNull().WithMessage("الرجاء إدخال درجة القدرات.");
+
+                RuleFor(x => x.AptitudeScore!.Value)
+                    .InclusiveBetween(0, 100).WithMessage("درجة القدرات يجب أن تكون بين 0 و 100.")
+                    .When(x => x.AptitudeScore.HasValue);
             });
 
             When(x => IsIgCert(x.Certification), () =>
@@ -152,6 +162,13 @@ namespace StudentRegistry.Application.Validators
         {
             if (string.IsNullOrEmpty(cert)) return false;
             return cert.Contains("IG") || cert.Equals("ig", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool HaveWholeNumberCoefficient(SaudiGradeCreateDto grade)
+        {
+            if (grade.Achieved <= 0) return false;
+            var coefficient = grade.Weighted / grade.Achieved;
+            return Math.Abs(coefficient - Math.Round(coefficient)) < 0.001m;
         }
     }
 }
