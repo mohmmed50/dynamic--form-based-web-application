@@ -31,5 +31,6 @@ namespace StudentRegistry.Domain.Entities
         public virtual IgStudentGrades? IgGrades { get; set; }
         public virtual ICollection<IgStudentGradeCounts> IgGradeCounts { get; set; } = new List<IgStudentGradeCounts>();
         public virtual ICollection<StandardStudentGrades> StandardGrades { get; set; } = new List<StandardStudentGrades>();
+        public virtual KuwaitiStudentTotals? KuwaitiTotals { get; set; }
     }
 }

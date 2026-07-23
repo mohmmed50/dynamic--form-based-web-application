@@ -1,5 +1,6 @@
 let appConfig = null;
 let saudiConfig = null;
+let kuwaitiConfig = null;
 
 // Fetch config from the ConfigController API (single source of truth)
 async function loadSubjectsConfig() {
@@ -25,6 +26,18 @@ async function loadSubjectsConfig() {
   } catch (error) {
     console.error('Could not load Saudi subjects configuration.', error);
     showAlert('form-alert', 'تعذر تحميل بيانات مواد الشهادة السعودية من الخادم. الرجاء تحديث الصفحة.', 'danger');
+  }
+
+  try {
+    const response = await fetch('/api/config/subjects-kuwaiti');
+    if (response.ok) {
+      kuwaitiConfig = await response.json();
+    } else {
+      throw new Error('Failed to load /api/config/subjects-kuwaiti: ' + response.status);
+    }
+  } catch (error) {
+    console.error('Could not load Kuwaiti subjects configuration.', error);
+    showAlert('form-alert', 'تعذر تحميل بيانات مواد الشهادة الكويتية من الخادم. الرجاء تحديث الصفحة.', 'danger');
   }
 }
 
@@ -166,6 +179,7 @@ function initConditionals() {
     // Reset IG UI & standard table UI
     document.getElementById('non-ig-grades-container').style.display = 'block';
     document.getElementById('ig-grades-container').style.display = 'none';
+    document.getElementById('kuwaiti-grades-container').style.display = 'none';
     document.getElementById('section-year').style.display = 'block';
     document.getElementById('section-grades-title').textContent = 'جدول إدخال الدرجات';
     document.getElementById('section-grades-desc').textContent = 'أدخل الدرجة والنسبة الموزونة لكل مادة أدناه. سيتم احتساب الدرجة المتحصلة تلقائياً.';
@@ -181,6 +195,13 @@ function initConditionals() {
         if (typeof resetIGCalculator === 'function') {
           resetIGCalculator();
         }
+      } else if (certKey === 'kuwaiti') {
+        // Kuwaiti cert does not use the year-select section at all (§ ARCHITECTURE.md 4.A step order)
+        document.getElementById('section-year').style.display = 'none';
+        document.getElementById('non-ig-grades-container').style.display = 'none';
+        document.getElementById('kuwaiti-grades-container').style.display = 'block';
+        document.getElementById('section-grades-title').textContent = '🧮 حاسبة الشهادة الكويتية';
+        document.getElementById('section-grades-desc').textContent = 'اختر عدد سنوات الدراسة، ثم أدخل الدرجة المتحصلة لكل مادة ونسبة كل سنة من معدلك التراكمي كما هي مدونة في شهادتك.';
       }
 
       // Populate track options
@@ -224,6 +245,8 @@ function initConditionals() {
         if (typeof calculateIGScore === 'function') {
           calculateIGScore();
         }
+      } else if (certKey === 'kuwaiti') {
+        activateSection('section-grades');
       } else {
         yearSelect.value = '';
         activateSection('section-year');

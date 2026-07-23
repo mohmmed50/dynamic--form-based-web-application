@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using StudentRegistry.Application.Constants;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace StudentRegistry.API.Controllers
 {
@@ -95,6 +97,26 @@ namespace StudentRegistry.API.Controllers
             };
 
             return Ok(saudiConfig);
+        }
+
+        [HttpGet("subjects-kuwaiti")]
+        public IActionResult GetKuwaitiSubjectsConfig()
+        {
+            // Max marks are fixed (taken from an official Kuwaiti certificate sample) — the student
+            // only enters the obtained mark; the weight per year is entered by the student themselves
+            // since it is printed on their own certificate (see KuwaitiConstants for details).
+            static object[] ToSubjectList(Dictionary<string, decimal> maxMarks) =>
+                maxMarks.Select(kv => (object)new { name = kv.Key, maxMark = kv.Value }).ToArray();
+
+            var kuwaitiConfig = new
+            {
+                grade_10 = ToSubjectList(KuwaitiConstants.Grade10MaxMarks),
+                grade_11 = ToSubjectList(KuwaitiConstants.Grade11MaxMarks),
+                grade_12 = ToSubjectList(KuwaitiConstants.Grade12MaxMarks),
+                years_count_options = new[] { KuwaitiConstants.OneYear, KuwaitiConstants.TwoYears, KuwaitiConstants.ThreeYears }
+            };
+
+            return Ok(kuwaitiConfig);
         }
     }
 }

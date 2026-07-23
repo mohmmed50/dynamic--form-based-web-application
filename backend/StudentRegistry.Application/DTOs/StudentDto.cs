@@ -38,6 +38,33 @@ namespace StudentRegistry.Application.DTOs
         // Standard certificate fields
         public string? YearOfStudy { get; set; }
         public List<StandardGradeCreateDto>? StandardGrades { get; set; }
+
+        // Kuwaiti specific fields
+        public KuwaitiDataCreateDto? KuwaitiData { get; set; }
+    }
+
+    public class KuwaitiDataCreateDto
+    {
+        // "Two Years" (grade 11 + 12) or "Three Years" (grade 10 + 11 + 12) — mirrors Saudi's YearsCount.
+        public string YearsCount { get; set; } = string.Empty;
+        public bool HasSecondAttempt { get; set; }
+
+        // Weight (%) for each included grade level, as printed on the student's own certificate.
+        // Grade10Weight is only used/required when YearsCount is "Three Years".
+        public decimal? Grade10Weight { get; set; }
+        public decimal? Grade11Weight { get; set; }
+        public decimal? Grade12Weight { get; set; }
+
+        public List<KuwaitiSubjectGradeCreateDto>? Grade10Subjects { get; set; }
+        public List<KuwaitiSubjectGradeCreateDto>? Grade11Subjects { get; set; }
+        public List<KuwaitiSubjectGradeCreateDto>? Grade12Subjects { get; set; }
+    }
+
+    public class KuwaitiSubjectGradeCreateDto
+    {
+        public string SubjectName { get; set; } = string.Empty;
+        public decimal Obtained { get; set; }
+        // Max mark is fixed server-side (KuwaitiConstants) — never accepted from the client.
     }
 
     public class SaudiGradeCreateDto
@@ -90,6 +117,33 @@ namespace StudentRegistry.Application.DTOs
         public List<SaudiGradeResponseDto>? SaudiGrades { get; set; }
         public IgGradesResponseDto? IgGrades { get; set; }
         public List<StandardGradeResponseDto>? StandardGrades { get; set; }
+        public KuwaitiTotalsResponseDto? KuwaitiTotals { get; set; }
+        public List<KuwaitiGradeResponseDto>? KuwaitiGrades { get; set; }
+    }
+
+    public class KuwaitiTotalsResponseDto
+    {
+        public string YearsCount { get; set; } = string.Empty;
+        public decimal? Grade10Percentage { get; set; }
+        public decimal? Grade11Percentage { get; set; }
+        public decimal Grade12Percentage { get; set; }
+        public decimal? Grade10Weight { get; set; }
+        public decimal? Grade11Weight { get; set; }
+        public decimal Grade12Weight { get; set; }
+        // The final equivalent percentage (0-100) — the percentage form of EquivalentTotal (out of 410).
+        public decimal FinalPercentage { get; set; }
+        public decimal EquivalentTotal { get; set; }
+        public bool HasSecondAttempt { get; set; }
+        public string Disclaimer { get; set; } = string.Empty;
+        public string? SecondAttemptWarning { get; set; }
+    }
+
+    public class KuwaitiGradeResponseDto
+    {
+        public int GradeLevel { get; set; }
+        public string SubjectName { get; set; } = string.Empty;
+        public decimal Obtained { get; set; }
+        public decimal MaxMark { get; set; }
     }
 
     public class SaudiTotalsResponseDto

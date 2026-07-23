@@ -24,6 +24,7 @@ namespace StudentRegistry.Repository.Implementations
                 .Include(s => s.IgGrades)
                 .Include(s => s.IgGradeCounts)
                 .Include(s => s.StandardGrades)
+                .Include(s => s.KuwaitiTotals)
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
 
@@ -35,6 +36,7 @@ namespace StudentRegistry.Repository.Implementations
                 .Include(s => s.IgGrades)
                 .Include(s => s.IgGradeCounts)
                 .Include(s => s.StandardGrades)
+                .Include(s => s.KuwaitiTotals)
                 .FirstOrDefaultAsync(s => s.NationalId == nationalId);
         }
 

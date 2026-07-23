@@ -6,6 +6,7 @@ function initFormHandlers() {
   initImageUpload();
   setupTableCalculationListeners();
   setupIGCalculatorListeners();
+  setupKuwaitiCalculatorListeners();
   setupSubmissionHandler();
 }
 
@@ -523,6 +524,182 @@ function calculateIGScore() {
   document.getElementById('ig-gov-val').textContent = governmentScore.toFixed(2) + ' / 410';
 }
 
+// 3c. Kuwaiti Calculator (§1.3 of the certificate rules — mirrors StudentService.ProcessKuwaitiCertificate exactly)
+// Max marks are fixed per subject (server-authoritative, taken from an official Kuwaiti Ministry of
+// Education certificate sample) — the student only enters the obtained mark. The weight (%) each year
+// contributes to the cumulative average is entered by the student themselves, since it is printed on
+// their own certificate (e.g. 10% / 20% / 70%, or 20% / 80% when grade 10 wasn't studied).
+const KUWAITI_EGYPTIAN_SCIENTIFIC_TOTAL = 410;
+
+function generateKuwaitiGradesUI() {
+  const container = document.getElementById('kuwaiti-grade-blocks');
+  const yearsCountSelect = document.getElementById('kuwaiti-years-count');
+  if (!container || !kuwaitiConfig || !yearsCountSelect) return;
+
+  container.innerHTML = '';
+
+  const yearsCount = yearsCountSelect.value;
+  const includedLevels = getKuwaitiIncludedLevels();
+  const isOneYear = yearsCount === 'One Year';
+
+  const allBlocks = [
+    { level: 10, label: 'الصف العاشر', subjects: kuwaitiConfig.grade_10 || [] },
+    { level: 11, label: 'الصف الحادي عشر', subjects: kuwaitiConfig.grade_11 || [] },
+    { level: 12, label: 'الصف الثاني عشر', subjects: kuwaitiConfig.grade_12 || [] }
+  ];
+  const blocks = allBlocks.filter(b => includedLevels.includes(b.level));
+
+  blocks.forEach(block => {
+    const card = document.createElement('div');
+    card.className = 'saudi-year-card';
+    card.style.cssText = 'background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-md, 8px); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));';
+
+    let rowsHtml = '';
+    block.subjects.forEach((subject, index) => {
+      rowsHtml += `
+        <tr>
+          <td class="col-num">${index + 1}</td>
+          <td class="col-subject">${subject.name}</td>
+          <td class="col-grade">
+            <input type="number" min="0" max="${subject.maxMark}" step="any" required placeholder="0-${subject.maxMark}"
+                   class="table-input kuwaiti-obtained-input"
+                   data-grade-level="${block.level}" data-subject="${subject.name}" data-max-mark="${subject.maxMark}">
+          </td>
+          <td class="col-weight">${subject.maxMark}</td>
+        </tr>
+      `;
+    });
+
+    const weightFieldHtml = isOneYear ? '' : `
+      <div class="form-group" style="max-width: 260px;">
+        <label for="kuwaiti-weight-${block.level}">نسبة ${block.label} من المعدل التراكمي (%) كما هي مدونة بالشهادة</label>
+        <input type="number" id="kuwaiti-weight-${block.level}" class="form-control kuwaiti-weight-input"
+               data-grade-level="${block.level}" min="0.01" max="100" step="any" placeholder="مثال: 70">
+      </div>
+    `;
+
+    card.innerHTML = `
+      <h3 class="saudi-year-title" style="margin-top: 0; margin-bottom: 1rem; color: var(--primary-color); font-size: 1.15rem; font-weight: 600; border-bottom: 2px solid var(--primary-light); padding-bottom: 0.5rem;">
+        📚 ${block.label}
+      </h3>
+      ${weightFieldHtml}
+      <div class="table-responsive">
+        <table class="grades-table">
+          <thead>
+            <tr>
+              <th class="col-num">#</th>
+              <th class="col-subject">اسم المادة</th>
+              <th class="col-grade">الدرجة المتحصلة</th>
+              <th class="col-weight">الدرجة العظمى</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      </div>
+      <div class="saudi-subtotal-bar" style="margin-top: 1rem; background: var(--light-bg, #f8fafc); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: var(--radius-sm, 6px); font-size: 0.9rem; font-weight: 600;">
+        نسبة ${block.label}: <span class="kuwaiti-grade-percentage" data-grade-level="${block.level}" style="color: var(--primary-color);">0.00%</span>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  container.querySelectorAll('.kuwaiti-obtained-input, .kuwaiti-weight-input').forEach(input => {
+    input.addEventListener('input', recalculateKuwaiti);
+    input.addEventListener('change', recalculateKuwaiti);
+  });
+
+  recalculateKuwaiti();
+}
+
+function setupKuwaitiCalculatorListeners() {
+  const yearsCountSelect = document.getElementById('kuwaiti-years-count');
+  const secondAttempt = document.getElementById('kuwaiti-second-attempt');
+
+  if (yearsCountSelect) {
+    yearsCountSelect.addEventListener('change', generateKuwaitiGradesUI);
+  }
+  if (secondAttempt) {
+    secondAttempt.addEventListener('change', recalculateKuwaiti);
+  }
+}
+
+function kuwaitiYearsCountLabel(yearsCount) {
+  if (yearsCount === 'One Year') return 'سنة واحدة';
+  if (yearsCount === 'Three Years') return 'ثلاث سنوات';
+  return 'سنتان';
+}
+
+function getKuwaitiIncludedLevels() {
+  const yearsCountSelect = document.getElementById('kuwaiti-years-count');
+  const yearsCount = yearsCountSelect ? yearsCountSelect.value : '';
+  if (yearsCount === 'One Year') return [12];
+  if (yearsCount === 'Three Years') return [10, 11, 12];
+  return [11, 12];
+}
+
+function recalculateKuwaiti() {
+  const container = document.getElementById('kuwaiti-grade-blocks');
+  if (!container) return;
+
+  const secondAttemptCheck = document.getElementById('kuwaiti-second-attempt');
+  const secondAttemptAlert = document.getElementById('kuwaiti-second-attempt-alert');
+  if (secondAttemptAlert) {
+    secondAttemptAlert.style.display = (secondAttemptCheck && secondAttemptCheck.checked) ? 'flex' : 'none';
+  }
+
+  const includedLevels = getKuwaitiIncludedLevels();
+  const isOneYear = includedLevels.length === 1;
+  const percentages = {};
+  const weights = {};
+
+  includedLevels.forEach(level => {
+    let totalObtained = 0;
+    let totalMax = 0;
+
+    container.querySelectorAll(`.kuwaiti-obtained-input[data-grade-level="${level}"]`).forEach(input => {
+      const obtained = parseFloat(input.value) || 0;
+      const maxMark = parseFloat(input.getAttribute('data-max-mark')) || 0;
+      totalObtained += obtained;
+      totalMax += maxMark;
+    });
+
+    const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0;
+    percentages[level] = percentage;
+
+    const badge = container.querySelector(`.kuwaiti-grade-percentage[data-grade-level="${level}"]`);
+    if (badge) badge.textContent = percentage.toFixed(2) + '%';
+
+    if (isOneYear) {
+      weights[level] = 100; // grade 12 alone carries 100% when only one year is studied
+    } else {
+      const weightInput = document.getElementById('kuwaiti-weight-' + level);
+      weights[level] = weightInput ? (parseFloat(weightInput.value) || 0) : 0;
+    }
+  });
+
+  const weightSum = includedLevels.reduce((sum, level) => sum + weights[level], 0);
+  const weightSumAlert = document.getElementById('kuwaiti-weight-sum-alert');
+  const weightsEntered = isOneYear || includedLevels.every(level => weights[level] > 0);
+  if (weightSumAlert) {
+    weightSumAlert.style.display = (!isOneYear && weightsEntered && Math.abs(weightSum - 100) > 0.01) ? 'flex' : 'none';
+  }
+
+  let finalPercentage = 0;
+  if (weightsEntered && Math.abs(weightSum - 100) <= 0.01) {
+    finalPercentage = includedLevels.reduce((sum, level) => sum + (percentages[level] * weights[level] / 100), 0);
+  }
+  const equivalentTotal = (finalPercentage / 100) * KUWAITI_EGYPTIAN_SCIENTIFIC_TOTAL;
+
+  const finalEl = document.getElementById('kuwaiti-final-percentage');
+  const totalEl = document.getElementById('kuwaiti-equivalent-total');
+  if (finalEl) finalEl.textContent = finalPercentage.toFixed(2) + '%';
+  if (totalEl) totalEl.textContent = equivalentTotal.toFixed(2) + ' / 410 (' + finalPercentage.toFixed(2) + '%)';
+
+  updateProgressIndicator();
+}
+
 // 4. Form Submission and Validation
 function setupSubmissionHandler() {
   const mainForm = document.getElementById('student-reg-form');
@@ -719,6 +896,68 @@ function validateForm() {
     return { valid: true };
   }
 
+  // Check if Kuwaiti Cert is active
+  if (certSelect.value === 'kuwaiti') {
+    const yearsCountSelect = document.getElementById('kuwaiti-years-count');
+    if (!yearsCountSelect.value) {
+      return {
+        valid: false,
+        message: 'الرجاء اختيار عدد سنوات الدراسة.',
+        element: yearsCountSelect
+      };
+    }
+
+    const includedLevels = getKuwaitiIncludedLevels();
+    const obtainedInputs = document.querySelectorAll('.kuwaiti-obtained-input');
+    if (obtainedInputs.length === 0) {
+      return {
+        valid: false,
+        message: 'الرجاء توليد جدول مواد الشهادة الكويتية أولاً.',
+        element: yearsCountSelect
+      };
+    }
+
+    for (let i = 0; i < obtainedInputs.length; i++) {
+      const obtainedVal = parseFloat(obtainedInputs[i].value);
+      const maxMarkVal = parseFloat(obtainedInputs[i].getAttribute('data-max-mark'));
+
+      if (isNaN(obtainedVal) || obtainedVal < 0 || obtainedVal > maxMarkVal) {
+        return {
+          valid: false,
+          message: 'الرجاء إدخال درجة متحصلة صحيحة (بين 0 و' + maxMarkVal + ') لجميع المواد.',
+          element: obtainedInputs[i]
+        };
+      }
+    }
+
+    const isOneYear = includedLevels.length === 1;
+    if (!isOneYear) {
+      let weightSum = 0;
+      for (const level of includedLevels) {
+        const weightInput = document.getElementById('kuwaiti-weight-' + level);
+        const weightVal = parseFloat(weightInput.value);
+        if (isNaN(weightVal) || weightVal <= 0 || weightVal > 100) {
+          return {
+            valid: false,
+            message: 'الرجاء إدخال نسبة صحيحة (بين 0 و100) لكل سنة كما هي مدونة بالشهادة.',
+            element: weightInput
+          };
+        }
+        weightSum += weightVal;
+      }
+
+      if (Math.abs(weightSum - 100) > 0.01) {
+        return {
+          valid: false,
+          message: 'مجموع نسب السنوات المدخلة يجب أن يساوي 100%.',
+          element: document.getElementById('kuwaiti-weight-' + includedLevels[0])
+        };
+      }
+    }
+
+    return { valid: true };
+  }
+
   // Check if Saudi Cert is active
   if (certSelect.value === 'saudi') {
     const yearSelect = document.getElementById('year-select');
@@ -812,6 +1051,54 @@ function compilePayload() {
     addressBuilding: document.getElementById('address-building').value.trim(),
     addressFloor: document.getElementById('address-floor').value.trim()
   };
+
+  if (certSelect.value === 'kuwaiti') {
+    const yearsCount = document.getElementById('kuwaiti-years-count').value;
+    const isOneYear = yearsCount === 'One Year';
+    const isThreeYears = yearsCount === 'Three Years';
+    const hasSecondAttempt = document.getElementById('kuwaiti-second-attempt').checked;
+
+    const getWeight = (level) => {
+      const input = document.getElementById('kuwaiti-weight-' + level);
+      return input ? (parseFloat(input.value) || 0) : null;
+    };
+
+    const collectGradeLevel = (level) => {
+      const rows = [];
+      document.querySelectorAll(`.kuwaiti-obtained-input[data-grade-level="${level}"]`).forEach(input => {
+        rows.push({
+          subjectName: input.getAttribute('data-subject'),
+          obtained: parseFloat(input.value) || 0
+        });
+      });
+      return rows;
+    };
+
+    const finalPercentage = parseFloat(document.getElementById('kuwaiti-final-percentage').textContent) || 0;
+    const equivalentTotal = parseFloat(document.getElementById('kuwaiti-equivalent-total').textContent) || 0;
+
+    return {
+      ...personalInfo,
+      nationalId: document.getElementById('national-id').value.trim(),
+      certification: certSelect.options[certSelect.selectedIndex].text,
+      track: trackVal,
+      yearOfStudy: '',
+      photo: uploadedPhotoBase64,
+      kuwaitiData: {
+        yearsCount: yearsCount,
+        hasSecondAttempt: hasSecondAttempt,
+        grade10Weight: isThreeYears ? getWeight(10) : null,
+        grade11Weight: isOneYear ? null : getWeight(11),
+        grade12Weight: isOneYear ? 100 : getWeight(12),
+        grade10Subjects: isThreeYears ? collectGradeLevel(10) : null,
+        grade11Subjects: isOneYear ? null : collectGradeLevel(11),
+        grade12Subjects: collectGradeLevel(12)
+      },
+      finalPercentage: finalPercentage,
+      equivalentTotal: equivalentTotal,
+      submittedAt: new Date().toISOString()
+    };
+  }
 
   if (certSelect.value === 'ig') {
     let igProgram = 'IGCSE';
@@ -1049,6 +1336,17 @@ function sendData(payload, submitBtn, originalText) {
         count: gradesObj[gradeKey]
       });
     });
+  } else if (payload.kuwaitiData) {
+    apiPayload.kuwaitiData = {
+      yearsCount: payload.kuwaitiData.yearsCount,
+      hasSecondAttempt: payload.kuwaitiData.hasSecondAttempt,
+      grade10Weight: payload.kuwaitiData.grade10Weight,
+      grade11Weight: payload.kuwaitiData.grade11Weight,
+      grade12Weight: payload.kuwaitiData.grade12Weight,
+      grade10Subjects: payload.kuwaitiData.grade10Subjects,
+      grade11Subjects: payload.kuwaitiData.grade11Subjects,
+      grade12Subjects: payload.kuwaitiData.grade12Subjects
+    };
   } else {
     apiPayload.yearOfStudy = payload.yearOfStudy;
     apiPayload.standardGrades = payload.grades.map(g => ({
@@ -1141,6 +1439,17 @@ function showSuccessScreen(payload, mode, serverPath = '') {
     }
     if (yearRow) yearRow.style.display = 'none';
     if (saudiGpaRow) saudiGpaRow.style.display = 'none';
+  } else if (payload.kuwaitiData) {
+    if (programRow) programRow.style.display = 'none';
+    if (yearRow) {
+      yearRow.style.display = 'flex';
+      if (yearLabel) yearLabel.textContent = 'عدد سنوات الدراسة:';
+      document.getElementById('receipt-year').textContent = kuwaitiYearsCountLabel(payload.kuwaitiData.yearsCount);
+    }
+    if (saudiGpaRow && saudiGpaVal) {
+      saudiGpaRow.style.display = 'flex';
+      saudiGpaVal.textContent = (payload.finalPercentage || 0).toFixed(2) + '%';
+    }
   } else {
     if (programRow) programRow.style.display = 'none';
     if (yearRow) {
@@ -1243,6 +1552,30 @@ function downloadReceiptFile(payload, format) {
       const gradesObj = payload.grades[activeSubkey] || {};
       Object.keys(gradesObj).forEach(gradeKey => {
         csvRows.push(`"${gradeKey}",${gradesObj[gradeKey]}`);
+      });
+    } else if (payload.kuwaitiData) {
+      const kw = payload.kuwaitiData;
+      csvRows.push(`المسار الأكاديمي,"${payload.track}"`);
+      csvRows.push(`عدد سنوات الدراسة,${kuwaitiYearsCountLabel(kw.yearsCount)}`);
+      csvRows.push(`هل يوجد مواد بنظام الدور الثاني؟,${kw.hasSecondAttempt ? 'نعم' : 'لا'}`);
+      csvRows.push(`النسبة المئوية النهائية,${(payload.finalPercentage || 0)}%`);
+      csvRows.push(`المجموع المعادل,${(payload.equivalentTotal || 0)}/410`);
+      csvRows.push(`تاريخ الإرسال,${payload.submittedAt}`);
+      csvRows.push('');
+
+      const gradeLevels = [
+        { level: 10, label: 'الصف العاشر', weight: kw.grade10Weight, subjects: kw.grade10Subjects },
+        { level: 11, label: 'الصف الحادي عشر', weight: kw.grade11Weight, subjects: kw.grade11Subjects },
+        { level: 12, label: 'الصف الثاني عشر', weight: kw.grade12Weight, subjects: kw.grade12Subjects }
+      ];
+      gradeLevels.forEach(gl => {
+        if (!gl.subjects) return;
+        csvRows.push(`-- ${gl.label} (نسبتها ${gl.weight}%) --`);
+        csvRows.push('المادة,الدرجة المتحصلة');
+        gl.subjects.forEach(s => {
+          csvRows.push(`"${s.subjectName}",${s.obtained}`);
+        });
+        csvRows.push('');
       });
     } else {
       csvRows.push(`المسار الأكاديمي,"${payload.track}"`);
