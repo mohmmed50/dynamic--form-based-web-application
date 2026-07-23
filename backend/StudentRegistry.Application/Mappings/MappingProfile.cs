@@ -33,8 +33,10 @@ namespace StudentRegistry.Application.Mappings
                 .ForMember(dest => dest.IgGradeCounts, opt => opt.Ignore())
                 .ForMember(dest => dest.StandardGrades, opt => opt.Ignore());
 
+            // Coefficient is server-computed and validated (Weighted / Achieved) in StudentService,
+            // not mapped directly from client input.
             CreateMap<SaudiGradeCreateDto, SaudiStudentGrades>()
-                .ForMember(dest => dest.Weighted, opt => opt.MapFrom(src => src.Achieved * src.Coefficient));
+                .ForMember(dest => dest.Coefficient, opt => opt.Ignore());
 
             CreateMap<IgGradeCountCreateDto, IgStudentGradeCounts>();
             

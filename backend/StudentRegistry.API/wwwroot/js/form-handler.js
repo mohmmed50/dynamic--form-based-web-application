@@ -166,17 +166,22 @@ function generateGradesTable(yearVal) {
           <tr>
             <td class="col-num">${subjectIndex + 1}</td>
             <td class="col-subject">${displaySubjectName}</td>
-            <td class="col-grade" style="text-align: center;">${coefficient}</td>
-            <td class="col-weight">
-              <input type="number" min="0" max="100" step="any" required
-                     placeholder="0-100" class="table-input saudi-achieved-input"
-                     data-subject="${subjectName}" data-coefficient="${coefficient}">
+            <td class="col-grade">
+              <input type="number" min="0" step="any" required
+                     placeholder="المتحصلة" class="table-input saudi-achieved-input"
+                     data-subject="${subjectName}">
             </td>
-            <td class="col-achieved">0.00</td>
+            <td class="col-weight">
+              <input type="number" min="0" step="any" required
+                     placeholder="الموزونة" class="table-input saudi-weighted-input"
+                     data-subject="${subjectName}">
+            </td>
+            <td class="col-achieved saudi-coefficient-cell">-</td>
           </tr>
         `;
       });
 
+      card.setAttribute('data-year-key', block.key);
       card.innerHTML = `
         <h3 class="saudi-year-title" style="margin-top: 0; margin-bottom: 1rem; color: var(--primary-color); font-size: 1.15rem; font-weight: 600; border-bottom: 2px solid var(--primary-light); padding-bottom: 0.5rem;">
           📚 ${block.label}
@@ -187,9 +192,9 @@ function generateGradesTable(yearVal) {
               <tr>
                 <th class="col-num">#</th>
                 <th class="col-subject">اسم المادة</th>
-                <th class="col-grade">المعامل</th>
-                <th class="col-weight">الدرجة المحرزة</th>
-                <th class="col-achieved">الدرجة الموزونة</th>
+                <th class="col-grade">الدرجة المتحصلة</th>
+                <th class="col-weight">الدرجة الموزونة</th>
+                <th class="col-achieved">المعامل</th>
               </tr>
             </thead>
             <tbody>
@@ -203,6 +208,8 @@ function generateGradesTable(yearVal) {
           <div>مجموع الدرجات المحرزة: <span class="sub-achieved" style="color: var(--primary-color);">0.00</span></div>
           <div>مجموع المعاملات: <span class="sub-coefficients" style="color: var(--primary-color);">0</span></div>
           <div>المجموع الموزون: <span class="sub-weighted" style="color: var(--primary-color);">0.00</span></div>
+          <div>نسبة السنة: <span class="sub-year-percent" style="color: var(--primary-color);">0.00%</span></div>
+          <div>المساهمة الموزونة: <span class="sub-contribution" style="color: var(--primary-color);">0.00%</span></div>
         </div>
       `;
       saudiMultiContainer.appendChild(card);
@@ -259,32 +266,65 @@ function setupTableCalculationListeners() {
     const saudiMultiContainer = document.getElementById('saudi-multi-tables-container');
     const cards = saudiMultiContainer.querySelectorAll('.saudi-year-card');
 
+    // Official Saudi formula: per row, Coefficient = Weighted / Achieved (must be a whole
+    // number — otherwise the row is flagged as an error and the final grade is blocked).
+    // Per block: yearPercentage = (Σ Weighted) / (Σ Coefficient), weighted by the block's
+    // position via getSaudiYearWeights(yearsCount). School total = Σ weighted year percentages.
+    // Final = (schoolTotal + درجة القدرات) / 2. Mirrors StudentService.ProcessSaudiCertificate.
     const recalculateSaudi = () => {
+      const yearsCountVal = document.getElementById('year-select').value;
+      const yearWeights = typeof getSaudiYearWeights === 'function' ? getSaudiYearWeights(yearsCountVal) : {};
+
       let overallAchieved = 0;
       let overallWeighted = 0;
       let overallCoefficients = 0;
+      let schoolPercentage = 0;
+      let hasError = false;
 
       cards.forEach(card => {
         let cardAchieved = 0;
         let cardWeighted = 0;
         let cardCoefficients = 0;
+        let cardHasError = false;
 
-        const inputs = card.querySelectorAll('.saudi-achieved-input');
-        inputs.forEach(input => {
-          const achieved = parseFloat(input.value) || 0;
-          const coefficient = parseFloat(input.getAttribute('data-coefficient')) || 0;
+        const rows = card.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const achievedInput = row.querySelector('.saudi-achieved-input');
+          const weightedInput = row.querySelector('.saudi-weighted-input');
+          const coefficientCell = row.querySelector('.saudi-coefficient-cell');
 
-          if (input.value !== '' && (achieved < 0 || achieved > 100)) {
-            input.style.borderColor = 'var(--danger-color)';
+          const achievedRaw = achievedInput.value;
+          const weightedRaw = weightedInput.value;
+          const achieved = parseFloat(achievedRaw) || 0;
+          const weighted = parseFloat(weightedRaw) || 0;
+
+          achievedInput.style.borderColor = '';
+          weightedInput.style.borderColor = '';
+          coefficientCell.style.color = '';
+
+          let coefficient = 0;
+
+          if (achievedRaw === '' || weightedRaw === '') {
+            coefficientCell.textContent = '-';
+            cardHasError = true;
+          } else if (achieved <= 0) {
+            coefficientCell.textContent = '⚠️';
+            coefficientCell.style.color = 'var(--danger-color)';
+            achievedInput.style.borderColor = 'var(--danger-color)';
+            cardHasError = true;
           } else {
-            input.style.borderColor = '';
-          }
-
-          const weighted = achieved * coefficient;
-          const row = input.closest('tr');
-          const achievedDisplay = row.querySelector('.col-achieved');
-          if (achievedDisplay) {
-            achievedDisplay.textContent = weighted.toFixed(2);
+            const rawCoefficient = weighted / achieved;
+            const rounded = Math.round(rawCoefficient);
+            if (Math.abs(rawCoefficient - rounded) < 0.01) {
+              coefficient = rounded;
+              coefficientCell.textContent = String(coefficient);
+            } else {
+              coefficientCell.textContent = `⚠️ ${rawCoefficient.toFixed(2)}`;
+              coefficientCell.style.color = 'var(--danger-color)';
+              achievedInput.style.borderColor = 'var(--danger-color)';
+              weightedInput.style.borderColor = 'var(--danger-color)';
+              cardHasError = true;
+            }
           }
 
           cardAchieved += achieved;
@@ -292,42 +332,83 @@ function setupTableCalculationListeners() {
           cardCoefficients += coefficient;
         });
 
-        // Update card subtotal display
+        const yearKey = card.getAttribute('data-year-key');
+        const weightPercent = yearWeights[yearKey] || 0;
+        const yearPercentage = cardCoefficients > 0 ? (cardWeighted / cardCoefficients) : 0;
+        const contribution = yearPercentage * (weightPercent / 100);
+
         const subAchievedEl = card.querySelector('.sub-achieved');
         const subCoefficientsEl = card.querySelector('.sub-coefficients');
         const subWeightedEl = card.querySelector('.sub-weighted');
+        const subYearPercentEl = card.querySelector('.sub-year-percent');
+        const subContributionEl = card.querySelector('.sub-contribution');
 
         if (subAchievedEl) subAchievedEl.textContent = cardAchieved.toFixed(2);
         if (subCoefficientsEl) subCoefficientsEl.textContent = cardCoefficients;
         if (subWeightedEl) subWeightedEl.textContent = cardWeighted.toFixed(2);
+        if (subYearPercentEl) subYearPercentEl.textContent = yearPercentage.toFixed(2) + '%';
+        if (subContributionEl) subContributionEl.textContent = contribution.toFixed(2) + `% (وزن ${weightPercent}%)`;
 
         overallAchieved += cardAchieved;
         overallWeighted += cardWeighted;
         overallCoefficients += cardCoefficients;
+        if (!cardHasError) {
+          schoolPercentage += contribution;
+        } else {
+          hasError = true;
+        }
       });
-
-      const finalGPA = overallCoefficients > 0 ? (overallWeighted / (100 * overallCoefficients)) * 100 : 0;
 
       const elTotalAchieved = document.getElementById('saudi-total-achieved');
       const elTotalCoefficients = document.getElementById('saudi-total-coefficients');
       const elTotalWeighted = document.getElementById('saudi-total-weighted');
+      const elSchoolPercentage = document.getElementById('saudi-school-percentage');
       const elFinalGPA = document.getElementById('saudi-final-gpa');
 
       if (elTotalAchieved) elTotalAchieved.textContent = overallAchieved.toFixed(2);
       if (elTotalCoefficients) elTotalCoefficients.textContent = overallCoefficients;
       if (elTotalWeighted) elTotalWeighted.textContent = overallWeighted.toFixed(2);
-      if (elFinalGPA) elFinalGPA.textContent = finalGPA.toFixed(2) + '%';
+      if (elSchoolPercentage) elSchoolPercentage.textContent = schoolPercentage.toFixed(2) + '%';
+
+      const aptitudeInput = document.getElementById('saudi-aptitude-score');
+      const aptitudeRaw = aptitudeInput ? aptitudeInput.value : '';
+      const aptitudeVal = parseFloat(aptitudeRaw);
+      const hasValidAptitude = aptitudeRaw !== '' && !isNaN(aptitudeVal) && aptitudeVal >= 0 && aptitudeVal <= 100;
+
+      if (aptitudeInput) {
+        aptitudeInput.style.borderColor = (aptitudeRaw !== '' && !hasValidAptitude) ? 'var(--danger-color)' : '';
+      }
+
+      if (elFinalGPA) {
+        if (hasError) {
+          elFinalGPA.textContent = '⚠️ يوجد أخطاء في الدرجات المدخلة (تأكد أن المعامل رقم صحيح لكل مادة)';
+          elFinalGPA.style.color = 'var(--danger-color)';
+        } else if (!hasValidAptitude) {
+          elFinalGPA.textContent = '— (أدخل درجة القدرات)';
+          elFinalGPA.style.color = '';
+        } else {
+          const finalGrade = (schoolPercentage + aptitudeVal) / 2;
+          elFinalGPA.textContent = finalGrade.toFixed(2) + '%';
+          elFinalGPA.style.color = 'var(--success-color)';
+        }
+      }
 
       updateProgressIndicator();
     };
 
     cards.forEach(card => {
-      const inputs = card.querySelectorAll('.saudi-achieved-input');
+      const inputs = card.querySelectorAll('.saudi-achieved-input, .saudi-weighted-input');
       inputs.forEach(input => {
         input.addEventListener('input', recalculateSaudi);
         input.addEventListener('change', recalculateSaudi);
       });
     });
+
+    const aptitudeInput = document.getElementById('saudi-aptitude-score');
+    if (aptitudeInput) {
+      aptitudeInput.addEventListener('input', recalculateSaudi);
+      aptitudeInput.addEventListener('change', recalculateSaudi);
+    }
 
     recalculateSaudi();
   } else {
@@ -730,8 +811,9 @@ function validateForm() {
       };
     }
 
-    const saudiInputs = document.querySelectorAll('.saudi-achieved-input');
-    if (saudiInputs.length === 0) {
+    const achievedInputs = document.querySelectorAll('.saudi-achieved-input');
+    const weightedInputs = document.querySelectorAll('.saudi-weighted-input');
+    if (achievedInputs.length === 0) {
       return {
         valid: false,
         message: 'الرجاء توليد جدول المواد أولاً.',
@@ -739,16 +821,47 @@ function validateForm() {
       };
     }
 
-    for (let i = 0; i < saudiInputs.length; i++) {
-      const val = parseFloat(saudiInputs[i].value);
-      if (saudiInputs[i].value === '' || isNaN(val) || val < 0 || val > 100) {
+    for (let i = 0; i < achievedInputs.length; i++) {
+      const subjectName = achievedInputs[i].getAttribute('data-subject');
+      const achievedVal = parseFloat(achievedInputs[i].value);
+      const weightedVal = parseFloat(weightedInputs[i].value);
+
+      if (achievedInputs[i].value === '' || isNaN(achievedVal) || achievedVal <= 0) {
         return {
           valid: false,
-          message: 'الرجاء إدخال درجة محرزة صحيحة بين 0 و 100 لجميع المواد.',
-          element: saudiInputs[i]
+          message: `الرجاء إدخال الدرجة المتحصلة لمادة "${subjectName}".`,
+          element: achievedInputs[i]
+        };
+      }
+      if (weightedInputs[i].value === '' || isNaN(weightedVal) || weightedVal <= 0) {
+        return {
+          valid: false,
+          message: `الرجاء إدخال الدرجة الموزونة لمادة "${subjectName}".`,
+          element: weightedInputs[i]
+        };
+      }
+
+      const rawCoefficient = weightedVal / achievedVal;
+      const rounded = Math.round(rawCoefficient);
+      if (Math.abs(rawCoefficient - rounded) > 0.01) {
+        return {
+          valid: false,
+          message: `درجات مادة "${subjectName}" غير صحيحة: المعامل الناتج (${rawCoefficient.toFixed(2)}) ليس رقماً صحيحاً. تأكد أن الدرجة الموزونة من مضاعفات الدرجة المتحصلة.`,
+          element: weightedInputs[i]
         };
       }
     }
+
+    const aptitudeInput = document.getElementById('saudi-aptitude-score');
+    const aptitudeVal = parseFloat(aptitudeInput.value);
+    if (aptitudeInput.value === '' || isNaN(aptitudeVal) || aptitudeVal < 0 || aptitudeVal > 100) {
+      return {
+        valid: false,
+        message: 'الرجاء إدخال درجة القدرات الكلية بشكل صحيح (بين 0 و 100).',
+        element: aptitudeInput
+      };
+    }
+
     return { valid: true };
   }
 
@@ -881,21 +994,19 @@ function compilePayload() {
   }
 
   if (certSelect.value === 'saudi') {
+    const yearsCountVal = document.getElementById('year-select').value;
+    const yearWeights = typeof getSaudiYearWeights === 'function' ? getSaudiYearWeights(yearsCountVal) : {};
     const yearsData = [];
     const cards = document.querySelectorAll('#saudi-multi-tables-container .saudi-year-card');
     let overallAchieved = 0;
     let overallWeighted = 0;
     let overallCoefficients = 0;
+    let schoolPercentage = 0;
 
     cards.forEach(card => {
       const yearLabelEl = card.querySelector('.saudi-year-title');
-      // Extract label and key (e.g. "Year 1" or similar)
       const labelText = yearLabelEl ? yearLabelEl.textContent.trim().replace('📚 ', '') : 'السنة الدراسية';
-
-      // Determine year key (e.g. "Year 1") from the subtotal element's ID
-      const subtotalEl = card.querySelector('.saudi-subtotal-bar');
-      const subtotalId = subtotalEl ? subtotalEl.id : 'subtotal-Year-1';
-      const yearKey = subtotalId.replace('subtotal-', '').replace('-', ' '); // e.g. "Year 1"
+      const yearKey = card.getAttribute('data-year-key') || 'Year 1';
 
       const gradesData = [];
       const rows = card.querySelectorAll('tbody tr');
@@ -904,11 +1015,12 @@ function compilePayload() {
       let cardCoefficients = 0;
 
       rows.forEach(row => {
-        const subjectName = row.querySelector('.col-subject').textContent;
         const achievedInput = row.querySelector('.saudi-achieved-input');
+        const weightedInput = row.querySelector('.saudi-weighted-input');
+        const subjectName = achievedInput.getAttribute('data-subject');
         const achieved = parseFloat(achievedInput.value) || 0;
-        const coefficient = parseFloat(achievedInput.getAttribute('data-coefficient')) || 0;
-        const weighted = achieved * coefficient;
+        const weighted = parseFloat(weightedInput.value) || 0;
+        const coefficient = achieved > 0 ? Math.round(weighted / achieved) : 0;
 
         gradesData.push({
           subjectName,
@@ -922,6 +1034,10 @@ function compilePayload() {
         cardCoefficients += coefficient;
       });
 
+      const weightPercent = yearWeights[yearKey] || 0;
+      const yearPercentage = cardCoefficients > 0 ? (cardWeighted / cardCoefficients) : 0;
+      const contribution = yearPercentage * (weightPercent / 100);
+
       yearsData.push({
         yearLabel: yearKey,
         yearLabelAr: labelText,
@@ -929,29 +1045,37 @@ function compilePayload() {
         subtotal: {
           totalAchieved: parseFloat(cardAchieved.toFixed(2)),
           totalWeighted: parseFloat(cardWeighted.toFixed(2)),
-          totalCoefficients: cardCoefficients
+          totalCoefficients: cardCoefficients,
+          yearPercentage: parseFloat(yearPercentage.toFixed(2)),
+          weightPercent,
+          contribution: parseFloat(contribution.toFixed(2))
         }
       });
 
       overallAchieved += cardAchieved;
       overallWeighted += cardWeighted;
       overallCoefficients += cardCoefficients;
+      schoolPercentage += contribution;
     });
 
-    const finalPercentage = overallCoefficients > 0 ? (overallWeighted / (100 * overallCoefficients)) * 100 : 0;
+    const aptitudeScore = parseFloat(document.getElementById('saudi-aptitude-score').value) || 0;
+    const finalPercentage = (schoolPercentage + aptitudeScore) / 2;
 
     return {
       ...personalInfo,
       nationalId: document.getElementById('national-id').value.trim(),
       certification: certSelect.options[certSelect.selectedIndex].text,
       track: trackSelect.value,
-      yearsCount: document.getElementById('year-select').value,
+      yearsCount: yearsCountVal,
       photo: uploadedPhotoBase64,
       years: yearsData,
+      aptitudeScore: aptitudeScore,
       overallTotals: {
         totalAchieved: parseFloat(overallAchieved.toFixed(2)),
         totalWeighted: parseFloat(overallWeighted.toFixed(2)),
         totalCoefficients: overallCoefficients,
+        schoolPercentage: parseFloat(schoolPercentage.toFixed(2)),
+        aptitudeScore: aptitudeScore,
         finalPercentage: parseFloat(finalPercentage.toFixed(2))
       },
       submittedAt: new Date().toISOString()
@@ -1012,14 +1136,15 @@ function sendData(payload, submitBtn, originalText) {
 
   if (payload.yearsCount) {
     apiPayload.yearsCount = payload.yearsCount;
+    apiPayload.aptitudeScore = payload.aptitudeScore;
     apiPayload.saudiGrades = [];
     payload.years.forEach(yr => {
       yr.grades.forEach(g => {
         apiPayload.saudiGrades.push({
           yearLabel: yr.yearLabel,
           subjectName: g.subjectName,
-          coefficient: g.coefficient,
-          achieved: g.achieved
+          achieved: g.achieved,
+          weighted: g.weighted
         });
       });
     });

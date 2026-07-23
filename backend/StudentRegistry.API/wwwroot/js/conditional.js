@@ -56,28 +56,35 @@ function adjustYearSelect(certKey) {
 }
 
 // Get compiled Saudi blocks based on selected year (returns array of year-by-year blocks)
+// Each block's subjects are plain subject-name strings (no fixed coefficient anymore —
+// the coefficient is derived per submission from the student's own Achieved/Weighted entries).
 function getSaudiBlocks(yearVal) {
-  const b1 = saudiConfig.block_1 || [];
-  const b2 = saudiConfig.block_2 || [];
-  const b3 = saudiConfig.block_3 || [];
+  const toSubjectList = (names) => (names || []).map(name => ({ name }));
+  const b1 = toSubjectList(saudiConfig.block_1);
+  const b2 = toSubjectList(saudiConfig.block_2);
+  const b3 = toSubjectList(saudiConfig.block_3);
 
+  // block_1/2/3 are fixed to real grade levels (الأول/الثاني/الثالث الثانوي) — they are NOT
+  // interchangeable placeholders. "One Year" always means the student's single year was Third
+  // Secondary, so it must use block_3 (not block_1); "Two Years" means Second + Third Secondary,
+  // so it uses block_2 + block_3 (not block_1 + block_2). Matches the official spreadsheet exactly.
   const blocks = [];
   if (yearVal === 'One Year') {
     blocks.push({
       label: 'الصف الثالث الثانوي (Third Secondary Grade)',
       key: 'Year 1',
-      subjects: JSON.parse(JSON.stringify(b1))
+      subjects: JSON.parse(JSON.stringify(b3))
     });
   } else if (yearVal === 'Two Years') {
     blocks.push({
       label: 'الصف الثاني الثانوي (Second Secondary Grade)',
       key: 'Year 1',
-      subjects: JSON.parse(JSON.stringify(b1))
+      subjects: JSON.parse(JSON.stringify(b2))
     });
     blocks.push({
       label: 'الصف الثالث الثانوي (Third Secondary Grade)',
       key: 'Year 2',
-      subjects: JSON.parse(JSON.stringify(b2))
+      subjects: JSON.parse(JSON.stringify(b3))
     });
   } else if (yearVal === 'Three Years') {
     blocks.push({
@@ -97,6 +104,14 @@ function getSaudiBlocks(yearVal) {
     });
   }
   return blocks;
+}
+
+// Official Saudi year-weight table (mirrors StudentService.GetSaudiYearWeights on the backend).
+// Keyed by the block's position ("Year 1"/"Year 2"/"Year 3"), not by real grade level.
+function getSaudiYearWeights(yearsCount) {
+  if (yearsCount === 'One Year') return { 'Year 1': 100 };
+  if (yearsCount === 'Two Years') return { 'Year 1': 50, 'Year 2': 50 };
+  return { 'Year 1': 20, 'Year 2': 40, 'Year 3': 40 };
 }
 
 // Get compiled subjects based on certKey and selected year

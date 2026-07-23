@@ -81,41 +81,92 @@ namespace StudentRegistry.Application.Services
             return _mapper.Map<StudentResponseDto>(student);
         }
 
+        // Official Saudi weighted-grade formula (source: the registrar's spreadsheet).
+        // Per subject the student enters BOTH Achieved and Weighted; the coefficient is derived
+        // (Weighted / Achieved) and must be a whole number — re-validated here server-side even
+        // though StudentCreateDtoValidator already checked it, since the server is authoritative.
+        // Per year block: yearPercentage = (Σ Weighted) / (Σ Coefficient), then multiplied by a
+        // year-weight that depends on YearsCount (see GetSaudiYearWeights). The sum of the
+        // weighted year percentages is the "school percentage", which is then averaged with the
+        // student's AptitudeScore (درجة القدرات) for the final grade.
         private void ProcessSaudiCertificate(StudentCreateDto dto, Student student)
         {
             if (dto.SaudiGrades == null || !dto.SaudiGrades.Any())
                 throw new ArgumentException("بيانات المواد والدرجات للشهادة السعودية مفقودة.");
+            if (!dto.AptitudeScore.HasValue)
+                throw new ArgumentException("درجة القدرات مفقودة.");
+
+            string yearsCount = dto.YearsCount ?? "Three Years";
+            var yearWeights = GetSaudiYearWeights(yearsCount);
 
             decimal overallAchieved = 0;
             decimal overallWeighted = 0;
             int overallCoefficients = 0;
+            decimal schoolPercentage = 0;
 
-            foreach (var gradeDto in dto.SaudiGrades)
+            foreach (var yearGroup in dto.SaudiGrades.GroupBy(g => g.YearLabel))
             {
-                var grade = _mapper.Map<SaudiStudentGrades>(gradeDto);
-                grade.Student = student;
-                
-                overallAchieved += grade.Achieved;
-                overallWeighted += grade.Weighted;
-                overallCoefficients += grade.Coefficient;
+                decimal yearWeightedSum = 0;
+                int yearCoefficientSum = 0;
 
-                student.SaudiGrades.Add(grade);
+                foreach (var gradeDto in yearGroup)
+                {
+                    if (gradeDto.Achieved <= 0)
+                        throw new ArgumentException($"الدرجة المتحصلة لمادة \"{gradeDto.SubjectName}\" يجب أن تكون أكبر من الصفر.");
+
+                    decimal rawCoefficient = gradeDto.Weighted / gradeDto.Achieved;
+                    int coefficient = (int)Math.Round(rawCoefficient, MidpointRounding.AwayFromZero);
+                    if (Math.Abs(rawCoefficient - coefficient) > 0.001m)
+                        throw new ArgumentException($"درجات مادة \"{gradeDto.SubjectName}\" غير صحيحة: المعامل الناتج (الموزونة ÷ المتحصلة) ليس رقماً صحيحاً.");
+
+                    student.SaudiGrades.Add(new SaudiStudentGrades
+                    {
+                        Student = student,
+                        YearLabel = gradeDto.YearLabel,
+                        SubjectName = gradeDto.SubjectName,
+                        Achieved = gradeDto.Achieved,
+                        Weighted = gradeDto.Weighted,
+                        Coefficient = coefficient
+                    });
+
+                    overallAchieved += gradeDto.Achieved;
+                    overallWeighted += gradeDto.Weighted;
+                    overallCoefficients += coefficient;
+                    yearWeightedSum += gradeDto.Weighted;
+                    yearCoefficientSum += coefficient;
+                }
+
+                if (yearCoefficientSum <= 0)
+                    throw new ArgumentException($"لا يمكن حساب نسبة السنة \"{yearGroup.Key}\" — مجموع المعاملات صفر.");
+
+                if (!yearWeights.TryGetValue(yearGroup.Key, out decimal weightPercent))
+                    throw new ArgumentException($"لا يوجد وزن معرف للسنة \"{yearGroup.Key}\" مع عدد سنوات الدراسة \"{yearsCount}\".");
+
+                decimal yearPercentage = yearWeightedSum / yearCoefficientSum;
+                schoolPercentage += yearPercentage * (weightPercent / 100m);
             }
 
-            decimal finalPercentage = overallCoefficients > 0 
-                ? (overallWeighted / (100 * overallCoefficients)) * 100 
-                : 0;
+            decimal finalPercentage = (schoolPercentage + dto.AptitudeScore.Value) / 2;
 
             student.SaudiTotals = new SaudiStudentTotals
             {
                 Student = student,
-                YearsCount = dto.YearsCount ?? "Three Years",
+                YearsCount = yearsCount,
                 TotalAchieved = Math.Round(overallAchieved, 2),
                 TotalWeighted = Math.Round(overallWeighted, 2),
                 TotalCoefficients = overallCoefficients,
+                SchoolPercentage = Math.Round(schoolPercentage, 2),
+                AptitudeScore = dto.AptitudeScore.Value,
                 FinalPercentage = Math.Round(finalPercentage, 2)
             };
         }
+
+        private static Dictionary<string, decimal> GetSaudiYearWeights(string yearsCount) => yearsCount switch
+        {
+            "One Year" => new Dictionary<string, decimal> { ["Year 1"] = 100m },
+            "Two Years" => new Dictionary<string, decimal> { ["Year 1"] = 50m, ["Year 2"] = 50m },
+            _ => new Dictionary<string, decimal> { ["Year 1"] = 20m, ["Year 2"] = 40m, ["Year 3"] = 40m }
+        };
 
         private void ProcessIgCertificate(StudentCreateDto dto, Student student)
         {
