@@ -2,6 +2,7 @@ let appConfig = null;
 let saudiConfig = null;
 let kuwaitiConfig = null;
 let qatariConfig = null;
+let omaniConfig = null;
 
 // Fetch config from the ConfigController API (single source of truth)
 async function loadSubjectsConfig() {
@@ -51,6 +52,18 @@ async function loadSubjectsConfig() {
   } catch (error) {
     console.error('Could not load Qatari subjects configuration.', error);
     showAlert('form-alert', 'تعذر تحميل بيانات مواد الشهادة القطرية من الخادم. الرجاء تحديث الصفحة.', 'danger');
+  }
+
+  try {
+    const response = await fetch('/api/config/subjects-omani');
+    if (response.ok) {
+      omaniConfig = await response.json();
+    } else {
+      throw new Error('Failed to load /api/config/subjects-omani: ' + response.status);
+    }
+  } catch (error) {
+    console.error('Could not load Omani subjects configuration.', error);
+    showAlert('form-alert', 'تعذر تحميل بيانات مواد الشهادة العمانية من الخادم. الرجاء تحديث الصفحة.', 'danger');
   }
 }
 
@@ -194,6 +207,7 @@ function initConditionals() {
     document.getElementById('ig-grades-container').style.display = 'none';
     document.getElementById('kuwaiti-grades-container').style.display = 'none';
     document.getElementById('qatari-grades-container').style.display = 'none';
+    document.getElementById('omani-grades-container').style.display = 'none';
     document.getElementById('section-year').style.display = 'block';
     document.getElementById('section-grades-title').textContent = 'جدول إدخال الدرجات';
     document.getElementById('section-grades-desc').textContent = 'أدخل الدرجة والنسبة الموزونة لكل مادة أدناه. سيتم احتساب الدرجة المتحصلة تلقائياً.';
@@ -223,6 +237,13 @@ function initConditionals() {
         document.getElementById('qatari-grades-container').style.display = 'block';
         document.getElementById('section-grades-title').textContent = '🧮 حاسبة الشهادة القطرية';
         document.getElementById('section-grades-desc').textContent = 'أدخل درجة كل مادة من مواد المسار العلمي للصف الثاني عشر. المسارات الأخرى غير مدعومة حالياً.';
+      } else if (certKey === 'omani') {
+        // Omani cert is grade-12-only, single track — no year-select section at all.
+        document.getElementById('section-year').style.display = 'none';
+        document.getElementById('non-ig-grades-container').style.display = 'none';
+        document.getElementById('omani-grades-container').style.display = 'block';
+        document.getElementById('section-grades-title').textContent = '🧮 حاسبة الشهادة العمانية';
+        document.getElementById('section-grades-desc').textContent = 'أدخل درجة كل مادة من المواد السبع المعتمدة للصف الثاني عشر.';
       }
 
       // Populate track options
@@ -272,6 +293,11 @@ function initConditionals() {
         activateSection('section-grades');
         if (typeof generateQatariGradesUI === 'function') {
           generateQatariGradesUI(trackVal);
+        }
+      } else if (certKey === 'omani') {
+        activateSection('section-grades');
+        if (typeof generateOmaniGradesUI === 'function') {
+          generateOmaniGradesUI();
         }
       } else {
         yearSelect.value = '';

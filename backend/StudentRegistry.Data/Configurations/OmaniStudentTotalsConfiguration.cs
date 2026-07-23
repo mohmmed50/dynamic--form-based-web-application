@@ -4,11 +4,11 @@ using StudentRegistry.Domain.Entities;
 
 namespace StudentRegistry.Data.Configurations
 {
-    public class QatariStudentTotalsConfiguration : IEntityTypeConfiguration<QatariStudentTotals>
+    public class OmaniStudentTotalsConfiguration : IEntityTypeConfiguration<OmaniStudentTotals>
     {
-        public void Configure(EntityTypeBuilder<QatariStudentTotals> builder)
+        public void Configure(EntityTypeBuilder<OmaniStudentTotals> builder)
         {
-            builder.ToTable("QatariStudentTotals", "dbo");
+            builder.ToTable("OmaniStudentTotals", "dbo");
 
             builder.HasKey(t => t.StudentId);
 
@@ -16,8 +16,8 @@ namespace StudentRegistry.Data.Configurations
             builder.Property(t => t.Percentage).HasPrecision(5, 2);
 
             builder.HasOne(t => t.Student)
-                .WithOne(s => s.QatariTotals)
-                .HasForeignKey<QatariStudentTotals>(t => t.StudentId)
+                .WithOne(s => s.OmaniTotals)
+                .HasForeignKey<OmaniStudentTotals>(t => t.StudentId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

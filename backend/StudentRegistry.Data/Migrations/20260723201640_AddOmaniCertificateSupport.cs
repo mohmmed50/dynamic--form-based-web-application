@@ -1,0 +1,85 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace StudentRegistry.Data.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddOmaniCertificateSupport : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "IslamicEducationMark",
+                schema: "dbo",
+                table: "QatariStudentTotals");
+
+            migrationBuilder.DropColumn(
+                name: "PrintedPercentage",
+                schema: "dbo",
+                table: "QatariStudentTotals");
+
+            migrationBuilder.DropColumn(
+                name: "PrintedTotal",
+                schema: "dbo",
+                table: "QatariStudentTotals");
+
+            migrationBuilder.CreateTable(
+                name: "OmaniStudentTotals",
+                schema: "dbo",
+                columns: table => new
+                {
+                    StudentId = table.Column<int>(type: "int", nullable: false),
+                    FinalTotal = table.Column<decimal>(type: "decimal(6,2)", precision: 6, scale: 2, nullable: false),
+                    Percentage = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OmaniStudentTotals", x => x.StudentId);
+                    table.ForeignKey(
+                        name: "FK_OmaniStudentTotals_Students_StudentId",
+                        column: x => x.StudentId,
+                        principalSchema: "dbo",
+                        principalTable: "Students",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "OmaniStudentTotals",
+                schema: "dbo");
+
+            migrationBuilder.AddColumn<decimal>(
+                name: "IslamicEducationMark",
+                schema: "dbo",
+                table: "QatariStudentTotals",
+                type: "decimal(5,2)",
+                precision: 5,
+                scale: 2,
+                nullable: true);
+
+            migrationBuilder.AddColumn<decimal>(
+                name: "PrintedPercentage",
+                schema: "dbo",
+                table: "QatariStudentTotals",
+                type: "decimal(5,2)",
+                precision: 5,
+                scale: 2,
+                nullable: true);
+
+            migrationBuilder.AddColumn<decimal>(
+                name: "PrintedTotal",
+                schema: "dbo",
+                table: "QatariStudentTotals",
+                type: "decimal(6,2)",
+                precision: 6,
+                scale: 2,
+                nullable: true);
+        }
+    }
+}

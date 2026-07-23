@@ -8,6 +8,7 @@ function initFormHandlers() {
   setupIGCalculatorListeners();
   setupKuwaitiCalculatorListeners();
   setupQatariCalculatorListeners();
+  setupOmaniCalculatorListeners();
   setupSubmissionHandler();
 }
 
@@ -701,17 +702,92 @@ function recalculateKuwaiti() {
   updateProgressIndicator();
 }
 
-// 3d. Qatari Calculator (§1.4 of the certificate rules — mirrors StudentService.ProcessQatariCertificate exactly)
-// Scientific track only, grade 12 only. Max mark is fixed at 100 per subject; the denominator is
-// the constant 700 and is never derived from the submitted rows. التربية الإسلامية is collected
-// separately as a documentation-only mark and never enters the calculation.
-const QATARI_TOTAL_MAX = 700;
+// 3d. Single-year fixed-total Calculator (shared by Qatari and Omani — mirrors StudentService's
+// shared ProcessSingleYearFixedTotalCertificate exactly). Single grade level, max mark fixed at
+// 100 per subject, fixed denominator 700 never derived from the submitted rows. التربية الإسلامية
+// is collected separately as a documentation-only mark and never enters the calculation.
+const SINGLE_YEAR_TOTAL_MAX = 700;
 
+// Builds the flat subject-mark table for a given prefix ('qatari' or 'omani') into
+// `${prefix}-subjects-body`, wiring live recalculation.
+function generateSingleYearFixedTotalGradesUI(prefix, subjectsList, maxMark) {
+  const tbody = document.getElementById(prefix + '-subjects-body');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  (subjectsList || []).forEach((subjectName, index) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="col-num">${index + 1}</td>
+      <td class="col-subject">${subjectName}</td>
+      <td class="col-grade">
+        <input type="number" min="0" max="${maxMark}" step="any" required placeholder="0-${maxMark}"
+               class="table-input ${prefix}-mark-input" data-subject="${subjectName}">
+      </td>
+      <td class="col-weight">${maxMark}</td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  tbody.querySelectorAll('.' + prefix + '-mark-input').forEach(input => {
+    input.addEventListener('input', () => recalculateSingleYearFixedTotal(prefix));
+    input.addEventListener('change', () => recalculateSingleYearFixedTotal(prefix));
+  });
+
+  recalculateSingleYearFixedTotal(prefix);
+}
+
+function setupSingleYearFixedTotalListeners(prefix) {
+  [prefix + '-islamic-education-mark', prefix + '-printed-total', prefix + '-printed-percentage'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => recalculateSingleYearFixedTotal(prefix));
+      el.addEventListener('change', () => recalculateSingleYearFixedTotal(prefix));
+    }
+  });
+}
+
+function recalculateSingleYearFixedTotal(prefix) {
+  const tbody = document.getElementById(prefix + '-subjects-body');
+  if (!tbody) return;
+
+  let finalTotal = 0;
+  tbody.querySelectorAll('.' + prefix + '-mark-input').forEach(input => {
+    finalTotal += parseFloat(input.value) || 0;
+  });
+
+  const percentage = (finalTotal / SINGLE_YEAR_TOTAL_MAX) * 100;
+
+  const totalEl = document.getElementById(prefix + '-final-total');
+  const percentageEl = document.getElementById(prefix + '-percentage');
+  if (totalEl) totalEl.textContent = finalTotal.toFixed(2) + ' / 700';
+  if (percentageEl) percentageEl.textContent = percentage.toFixed(2) + '%';
+
+  const printedTotalInput = document.getElementById(prefix + '-printed-total');
+  const printedPercentageInput = document.getElementById(prefix + '-printed-percentage');
+  const noteEl = document.getElementById(prefix + '-comparison-note');
+  if (noteEl) {
+    const printedTotal = printedTotalInput ? parseFloat(printedTotalInput.value) : NaN;
+    const printedPercentage = printedPercentageInput ? parseFloat(printedPercentageInput.value) : NaN;
+    if (!isNaN(printedTotal) && !isNaN(printedPercentage)) {
+      const totalDiff = printedTotal - finalTotal;
+      const percentageDiff = printedPercentage - percentage;
+      noteEl.textContent = `المجموع المطبوع على الشهادة (${printedTotal}) يشمل مادة التربية الإسلامية. ` +
+        `الفرق عن المجموع المحتسب هنا هو ${totalDiff.toFixed(2)} درجة (${percentageDiff.toFixed(2)}%) ` +
+        `بسبب استبعاد هذه المادة من حساب المعادلة.`;
+    } else {
+      noteEl.textContent = '';
+    }
+  }
+
+  updateProgressIndicator();
+}
+
+// Qatari-specific: only المسار العلمي has a defined subject list; other tracks are blocked.
 function generateQatariGradesUI(trackVal) {
   const blockedAlert = document.getElementById('qatari-track-blocked-alert');
   const gradeBlock = document.getElementById('qatari-grade-block');
-  const tbody = document.getElementById('qatari-subjects-body');
-  if (!blockedAlert || !gradeBlock || !tbody || !qatariConfig) return;
+  if (!blockedAlert || !gradeBlock || !qatariConfig) return;
 
   const isScientific = trackVal === qatariConfig.scientific_track_name;
 
@@ -724,74 +800,21 @@ function generateQatariGradesUI(trackVal) {
   blockedAlert.style.display = 'none';
   gradeBlock.style.display = 'block';
 
-  tbody.innerHTML = '';
-  const maxMark = qatariConfig.max_mark_per_subject;
-  (qatariConfig.scientific || []).forEach((subjectName, index) => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td class="col-num">${index + 1}</td>
-      <td class="col-subject">${subjectName}</td>
-      <td class="col-grade">
-        <input type="number" min="0" max="${maxMark}" step="any" required placeholder="0-${maxMark}"
-               class="table-input qatari-mark-input" data-subject="${subjectName}">
-      </td>
-      <td class="col-weight">${maxMark}</td>
-    `;
-    tbody.appendChild(row);
-  });
-
-  tbody.querySelectorAll('.qatari-mark-input').forEach(input => {
-    input.addEventListener('input', recalculateQatari);
-    input.addEventListener('change', recalculateQatari);
-  });
-
-  recalculateQatari();
+  generateSingleYearFixedTotalGradesUI('qatari', qatariConfig.scientific, qatariConfig.max_mark_per_subject);
 }
 
 function setupQatariCalculatorListeners() {
-  ['qatari-islamic-education-mark', 'qatari-printed-total', 'qatari-printed-percentage'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('input', recalculateQatari);
-      el.addEventListener('change', recalculateQatari);
-    }
-  });
+  setupSingleYearFixedTotalListeners('qatari');
 }
 
-function recalculateQatari() {
-  const tbody = document.getElementById('qatari-subjects-body');
-  if (!tbody) return;
+// Omani-specific: single track, always rendered.
+function generateOmaniGradesUI() {
+  if (!omaniConfig) return;
+  generateSingleYearFixedTotalGradesUI('omani', omaniConfig.subjects, omaniConfig.max_mark_per_subject);
+}
 
-  let finalTotal = 0;
-  tbody.querySelectorAll('.qatari-mark-input').forEach(input => {
-    finalTotal += parseFloat(input.value) || 0;
-  });
-
-  const percentage = (finalTotal / QATARI_TOTAL_MAX) * 100;
-
-  const totalEl = document.getElementById('qatari-final-total');
-  const percentageEl = document.getElementById('qatari-percentage');
-  if (totalEl) totalEl.textContent = finalTotal.toFixed(2) + ' / 700';
-  if (percentageEl) percentageEl.textContent = percentage.toFixed(2) + '%';
-
-  const printedTotalInput = document.getElementById('qatari-printed-total');
-  const printedPercentageInput = document.getElementById('qatari-printed-percentage');
-  const noteEl = document.getElementById('qatari-comparison-note');
-  if (noteEl) {
-    const printedTotal = printedTotalInput ? parseFloat(printedTotalInput.value) : NaN;
-    const printedPercentage = printedPercentageInput ? parseFloat(printedPercentageInput.value) : NaN;
-    if (!isNaN(printedTotal) && !isNaN(printedPercentage)) {
-      const totalDiff = printedTotal - finalTotal;
-      const percentageDiff = printedPercentage - percentage;
-      noteEl.textContent = `المجموع المطبوع على الشهادة (${printedTotal}/800) يشمل مادة التربية الإسلامية. ` +
-        `الفرق عن المجموع المحتسب هنا هو ${totalDiff.toFixed(2)} درجة (${percentageDiff.toFixed(2)}%) ` +
-        `بسبب استبعاد هذه المادة من حساب المعادلة.`;
-    } else {
-      noteEl.textContent = '';
-    }
-  }
-
-  updateProgressIndicator();
+function setupOmaniCalculatorListeners() {
+  setupSingleYearFixedTotalListeners('omani');
 }
 
 // 4. Form Submission and Validation
@@ -828,6 +851,41 @@ function setupSubmissionHandler() {
 }
 
 // Full Form Fields Validation
+// Shared by Qatari and Omani: validates the flat 7-subject mark table + optional Islamic
+// education mark for a given prefix.
+function validateSingleYearFixedTotalMarks(prefix, missingTableMessage, fallbackElement) {
+  const markInputs = document.querySelectorAll('.' + prefix + '-mark-input');
+  if (markInputs.length === 0) {
+    return {
+      valid: false,
+      message: missingTableMessage,
+      element: fallbackElement
+    };
+  }
+
+  for (let i = 0; i < markInputs.length; i++) {
+    const markVal = parseFloat(markInputs[i].value);
+    if (isNaN(markVal) || markVal < 0 || markVal > 100) {
+      return {
+        valid: false,
+        message: 'الرجاء إدخال درجة صحيحة (بين 0 و100) لجميع المواد.',
+        element: markInputs[i]
+      };
+    }
+  }
+
+  const islamicInput = document.getElementById(prefix + '-islamic-education-mark');
+  if (islamicInput && islamicInput.value !== '' && (isNaN(parseFloat(islamicInput.value)) || parseFloat(islamicInput.value) < 0 || parseFloat(islamicInput.value) > 100)) {
+    return {
+      valid: false,
+      message: 'درجة التربية الإسلامية يجب أن تكون بين 0 و100.',
+      element: islamicInput
+    };
+  }
+
+  return { valid: true };
+}
+
 function validateForm() {
   // 1. Photo Upload
   if (!uploadedPhotoBase64) {
@@ -1062,36 +1120,12 @@ function validateForm() {
       };
     }
 
-    const markInputs = document.querySelectorAll('.qatari-mark-input');
-    if (markInputs.length === 0) {
-      return {
-        valid: false,
-        message: 'الرجاء توليد جدول مواد الشهادة القطرية أولاً.',
-        element: trackSelect
-      };
-    }
+    return validateSingleYearFixedTotalMarks('qatari', 'الرجاء توليد جدول مواد الشهادة القطرية أولاً.', trackSelect);
+  }
 
-    for (let i = 0; i < markInputs.length; i++) {
-      const markVal = parseFloat(markInputs[i].value);
-      if (isNaN(markVal) || markVal < 0 || markVal > 100) {
-        return {
-          valid: false,
-          message: 'الرجاء إدخال درجة صحيحة (بين 0 و100) لجميع المواد.',
-          element: markInputs[i]
-        };
-      }
-    }
-
-    const islamicInput = document.getElementById('qatari-islamic-education-mark');
-    if (islamicInput.value !== '' && (isNaN(parseFloat(islamicInput.value)) || parseFloat(islamicInput.value) < 0 || parseFloat(islamicInput.value) > 100)) {
-      return {
-        valid: false,
-        message: 'درجة التربية الإسلامية يجب أن تكون بين 0 و100.',
-        element: islamicInput
-      };
-    }
-
-    return { valid: true };
+  // Check if Omani Cert is active
+  if (certSelect.value === 'omani') {
+    return validateSingleYearFixedTotalMarks('omani', 'الرجاء توليد جدول مواد الشهادة العمانية أولاً.', trackSelect);
   }
 
   // Check if Saudi Cert is active
@@ -1166,6 +1200,40 @@ function validateForm() {
 }
 
 // Compile Form Inputs into JSON Object
+// Shared by Qatari and Omani: reads the flat subject-mark table + optional documentation fields
+// for a given prefix into the shape both StudentCreateDto.QatariData/OmaniData expect.
+function collectSingleYearFixedTotalPayload(prefix) {
+  const subjects = [];
+  document.querySelectorAll('.' + prefix + '-mark-input').forEach(input => {
+    subjects.push({
+      subjectName: input.getAttribute('data-subject'),
+      mark: parseFloat(input.value) || 0
+    });
+  });
+
+  const islamicInput = document.getElementById(prefix + '-islamic-education-mark');
+  const printedTotalInput = document.getElementById(prefix + '-printed-total');
+  const printedPercentageInput = document.getElementById(prefix + '-printed-percentage');
+
+  const islamicEducationMark = islamicInput && islamicInput.value !== '' ? parseFloat(islamicInput.value) : null;
+  const printedTotal = printedTotalInput && printedTotalInput.value !== '' ? parseFloat(printedTotalInput.value) : null;
+  const printedPercentage = printedPercentageInput && printedPercentageInput.value !== '' ? parseFloat(printedPercentageInput.value) : null;
+
+  const finalTotal = parseFloat(document.getElementById(prefix + '-final-total').textContent) || 0;
+  const percentage = parseFloat(document.getElementById(prefix + '-percentage').textContent) || 0;
+
+  return {
+    data: {
+      subjects: subjects,
+      islamicEducationMark: islamicEducationMark,
+      printedTotal: printedTotal,
+      printedPercentage: printedPercentage
+    },
+    finalTotal: finalTotal,
+    percentage: percentage
+  };
+}
+
 function compilePayload() {
   const certSelect = document.getElementById('cert-select');
   const trackSelect = document.getElementById('track-select');
@@ -1189,25 +1257,7 @@ function compilePayload() {
   };
 
   if (certSelect.value === 'qatari') {
-    const subjects = [];
-    document.querySelectorAll('.qatari-mark-input').forEach(input => {
-      subjects.push({
-        subjectName: input.getAttribute('data-subject'),
-        mark: parseFloat(input.value) || 0
-      });
-    });
-
-    const islamicInput = document.getElementById('qatari-islamic-education-mark');
-    const printedTotalInput = document.getElementById('qatari-printed-total');
-    const printedPercentageInput = document.getElementById('qatari-printed-percentage');
-
-    const islamicEducationMark = islamicInput && islamicInput.value !== '' ? parseFloat(islamicInput.value) : null;
-    const printedTotal = printedTotalInput && printedTotalInput.value !== '' ? parseFloat(printedTotalInput.value) : null;
-    const printedPercentage = printedPercentageInput && printedPercentageInput.value !== '' ? parseFloat(printedPercentageInput.value) : null;
-
-    const finalTotal = parseFloat(document.getElementById('qatari-final-total').textContent) || 0;
-    const percentage = parseFloat(document.getElementById('qatari-percentage').textContent) || 0;
-
+    const collected = collectSingleYearFixedTotalPayload('qatari');
     return {
       ...personalInfo,
       nationalId: document.getElementById('national-id').value.trim(),
@@ -1215,14 +1265,25 @@ function compilePayload() {
       track: trackVal,
       yearOfStudy: '',
       photo: uploadedPhotoBase64,
-      qatariData: {
-        subjects: subjects,
-        islamicEducationMark: islamicEducationMark,
-        printedTotal: printedTotal,
-        printedPercentage: printedPercentage
-      },
-      finalTotal: finalTotal,
-      percentage: percentage,
+      qatariData: collected.data,
+      finalTotal: collected.finalTotal,
+      percentage: collected.percentage,
+      submittedAt: new Date().toISOString()
+    };
+  }
+
+  if (certSelect.value === 'omani') {
+    const collected = collectSingleYearFixedTotalPayload('omani');
+    return {
+      ...personalInfo,
+      nationalId: document.getElementById('national-id').value.trim(),
+      certification: certSelect.options[certSelect.selectedIndex].text,
+      track: trackVal,
+      yearOfStudy: '',
+      photo: uploadedPhotoBase64,
+      omaniData: collected.data,
+      finalTotal: collected.finalTotal,
+      percentage: collected.percentage,
       submittedAt: new Date().toISOString()
     };
   }
@@ -1529,6 +1590,13 @@ function sendData(payload, submitBtn, originalText) {
       printedTotal: payload.qatariData.printedTotal,
       printedPercentage: payload.qatariData.printedPercentage
     };
+  } else if (payload.omaniData) {
+    apiPayload.omaniData = {
+      subjects: payload.omaniData.subjects,
+      islamicEducationMark: payload.omaniData.islamicEducationMark,
+      printedTotal: payload.omaniData.printedTotal,
+      printedPercentage: payload.omaniData.printedPercentage
+    };
   } else {
     apiPayload.yearOfStudy = payload.yearOfStudy;
     apiPayload.standardGrades = payload.grades.map(g => ({
@@ -1633,6 +1701,17 @@ function showSuccessScreen(payload, mode, serverPath = '') {
       saudiGpaVal.textContent = (payload.finalPercentage || 0).toFixed(2) + '%';
     }
   } else if (payload.qatariData) {
+    if (programRow) programRow.style.display = 'none';
+    if (yearRow) {
+      yearRow.style.display = 'flex';
+      if (yearLabel) yearLabel.textContent = 'المجموع (من 700):';
+      document.getElementById('receipt-year').textContent = (payload.finalTotal || 0).toFixed(2) + ' / 700';
+    }
+    if (saudiGpaRow && saudiGpaVal) {
+      saudiGpaRow.style.display = 'flex';
+      saudiGpaVal.textContent = (payload.percentage || 0).toFixed(2) + '%';
+    }
+  } else if (payload.omaniData) {
     if (programRow) programRow.style.display = 'none';
     if (yearRow) {
       yearRow.style.display = 'flex';
@@ -1788,6 +1867,26 @@ function downloadReceiptFile(payload, format) {
       csvRows.push('');
       csvRows.push('المادة,الدرجة');
       qa.subjects.forEach(s => {
+        csvRows.push(`"${s.subjectName}",${s.mark}`);
+      });
+    } else if (payload.omaniData) {
+      const om = payload.omaniData;
+      csvRows.push(`المسار الأكاديمي,"${payload.track}"`);
+      csvRows.push(`المجموع (من 700),${(payload.finalTotal || 0)}`);
+      csvRows.push(`النسبة المئوية,${(payload.percentage || 0)}%`);
+      if (om.islamicEducationMark !== null && om.islamicEducationMark !== undefined) {
+        csvRows.push(`درجة التربية الإسلامية (غير محتسبة),${om.islamicEducationMark}`);
+      }
+      if (om.printedTotal !== null && om.printedTotal !== undefined) {
+        csvRows.push(`المجموع المطبوع على الشهادة,${om.printedTotal}`);
+      }
+      if (om.printedPercentage !== null && om.printedPercentage !== undefined) {
+        csvRows.push(`النسبة المطبوعة على الشهادة,${om.printedPercentage}%`);
+      }
+      csvRows.push(`تاريخ الإرسال,${payload.submittedAt}`);
+      csvRows.push('');
+      csvRows.push('المادة,الدرجة');
+      om.subjects.forEach(s => {
         csvRows.push(`"${s.subjectName}",${s.mark}`);
       });
     } else {

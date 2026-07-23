@@ -44,6 +44,9 @@ namespace StudentRegistry.Application.DTOs
 
         // Qatari specific fields
         public QatariDataCreateDto? QatariData { get; set; }
+
+        // Omani specific fields
+        public OmaniDataCreateDto? OmaniData { get; set; }
     }
 
     public class KuwaitiDataCreateDto
@@ -73,17 +76,17 @@ namespace StudentRegistry.Application.DTOs
     public class QatariDataCreateDto
     {
         // The 7 scientific-track subjects — max mark is fixed server-side (§1.2), never client-supplied.
-        public List<QatariSubjectMarkCreateDto>? Subjects { get; set; }
-
-        // §1.3 — documentation-only, never fed into the calculation.
-        public decimal? IslamicEducationMark { get; set; }
-
-        // §1.5 — documentation-only comparison figures from the printed certificate (out of 800).
-        public decimal? PrintedTotal { get; set; }
-        public decimal? PrintedPercentage { get; set; }
+        public List<SingleYearSubjectMarkCreateDto>? Subjects { get; set; }
     }
 
-    public class QatariSubjectMarkCreateDto
+    public class OmaniDataCreateDto
+    {
+        // The 7 counted subjects — max mark is fixed server-side (§1.2), never client-supplied.
+        public List<SingleYearSubjectMarkCreateDto>? Subjects { get; set; }
+    }
+
+    // Shared by Qatari and Omani (both single-year, fixed-100-per-subject certificates).
+    public class SingleYearSubjectMarkCreateDto
     {
         public string SubjectName { get; set; } = string.Empty;
         public decimal Mark { get; set; }
@@ -142,7 +145,9 @@ namespace StudentRegistry.Application.DTOs
         public KuwaitiTotalsResponseDto? KuwaitiTotals { get; set; }
         public List<KuwaitiGradeResponseDto>? KuwaitiGrades { get; set; }
         public QatariTotalsResponseDto? QatariTotals { get; set; }
-        public List<QatariGradeResponseDto>? QatariGrades { get; set; }
+        public List<SingleYearSubjectMarkResponseDto>? QatariGrades { get; set; }
+        public OmaniTotalsResponseDto? OmaniTotals { get; set; }
+        public List<SingleYearSubjectMarkResponseDto>? OmaniGrades { get; set; }
     }
 
     public class KuwaitiTotalsResponseDto
@@ -174,14 +179,18 @@ namespace StudentRegistry.Application.DTOs
     {
         public decimal FinalTotal { get; set; }   // out of 700
         public decimal Percentage { get; set; }
-        public decimal? IslamicEducationMark { get; set; } // documentation-only, غير محتسبة
-        public decimal? PrintedTotal { get; set; }          // out of 800, documentation-only
-        public decimal? PrintedPercentage { get; set; }
-        public string? ComparisonNote { get; set; }
         public string Disclaimer { get; set; } = string.Empty;
     }
 
-    public class QatariGradeResponseDto
+    public class OmaniTotalsResponseDto
+    {
+        public decimal FinalTotal { get; set; }   // out of 700
+        public decimal Percentage { get; set; }
+        public string Disclaimer { get; set; } = string.Empty;
+    }
+
+    // Shared by Qatari and Omani grade lists.
+    public class SingleYearSubjectMarkResponseDto
     {
         public string SubjectName { get; set; } = string.Empty;
         public decimal Mark { get; set; }

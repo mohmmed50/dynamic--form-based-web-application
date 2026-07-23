@@ -77,6 +77,10 @@ namespace StudentRegistry.Application.Services
             {
                 ProcessQatariCertificate(createDto, student);
             }
+            else if (cert.Contains("عمانية") || cert.Equals("omani", StringComparison.OrdinalIgnoreCase))
+            {
+                ProcessOmaniCertificate(createDto, student);
+            }
             else
             {
                 ProcessStandardCertificate(createDto, student);
@@ -309,18 +313,58 @@ namespace StudentRegistry.Application.Services
             if (dto.Track != QatariConstants.ScientificTrack)
                 throw new ArgumentException(QatariConstants.NonScientificTrackError);
 
-            if (qa.Subjects == null || qa.Subjects.Count == 0)
-                throw new ArgumentException("بيانات المواد والدرجات للشهادة القطرية مفقودة.");
+            var (finalTotal, percentage) = ProcessSingleYearFixedTotalCertificate(
+                qa.Subjects, QatariConstants.ScientificTrackSubjects, student,
+                "بيانات المواد والدرجات للشهادة القطرية مفقودة.");
 
-            // §1.4 — finalTotal/percentage recomputed entirely from raw marks against the fixed
-            // 7-subject scientific-track list; the denominator is the constant 700, never derived
-            // from the submitted rows. The client-sent percentage is never trusted.
+            // TODO: the source rules for Qatari do not specify an Egyptian equivalent total (unlike
+            // Kuwaiti's percentage × 4.10) — do not apply that conversion here until confirmed.
+
+            student.QatariTotals = new QatariStudentTotals
+            {
+                Student = student,
+                FinalTotal = Math.Round(finalTotal, 2),
+                Percentage = Math.Round(percentage, 2)
+            };
+        }
+
+        private void ProcessOmaniCertificate(StudentCreateDto dto, Student student)
+        {
+            var om = dto.OmaniData;
+            if (om == null)
+                throw new ArgumentException("بيانات الشهادة العمانية مفقودة.");
+
+            var (finalTotal, percentage) = ProcessSingleYearFixedTotalCertificate(
+                om.Subjects, OmaniConstants.Subjects, student,
+                "بيانات المواد والدرجات للشهادة العمانية مفقودة.");
+
+            // TODO: the source rules for Omani do not specify an Egyptian equivalent total (unlike
+            // Kuwaiti's percentage × 4.10) — do not apply that conversion here until confirmed.
+
+            student.OmaniTotals = new OmaniStudentTotals
+            {
+                Student = student,
+                FinalTotal = Math.Round(finalTotal, 2),
+                Percentage = Math.Round(percentage, 2)
+            };
+        }
+
+        // Shared by Qatari and Omani: single grade level, 7 subjects fixed at 100 each, fixed
+        // denominator 700, no weights. §1.4 — finalTotal/percentage recomputed entirely from raw
+        // marks against the certificate's fixed subject list; the client-sent percentage is never
+        // trusted, and the denominator is never derived from the submitted rows.
+        private (decimal finalTotal, decimal percentage) ProcessSingleYearFixedTotalCertificate(
+            List<SingleYearSubjectMarkCreateDto>? subjects, string[] subjectList, Student student, string missingDataMessage)
+        {
+            if (subjects == null || subjects.Count == 0)
+                throw new ArgumentException(missingDataMessage);
+
             decimal finalTotal = 0;
-            foreach (var subject in qa.Subjects)
+            foreach (var subject in subjects)
             {
                 // Defence in depth: the validator already enforces an exact match against the
-                // scientific-track subject list (§1.2) and rejects التربية الإسلامية (§1.3).
-                if (!QatariConstants.ScientificTrackSubjects.Contains(subject.SubjectName))
+                // certificate's subject list and rejects التربية الإسلامية.
+                if (!subjectList.Contains(subject.SubjectName))
                     continue;
 
                 finalTotal += subject.Mark;
@@ -331,27 +375,15 @@ namespace StudentRegistry.Application.Services
                     YearOfStudy = "12",
                     SubjectName = subject.SubjectName,
                     Grade = subject.Mark,
-                    MaxMark = QatariConstants.MaxMarkPerSubject,
-                    WeightedPercentage = Math.Round((subject.Mark / QatariConstants.MaxMarkPerSubject) * 100, 2),
+                    MaxMark = SingleYearFixedTotalConstants.MaxMarkPerSubject,
+                    WeightedPercentage = Math.Round((subject.Mark / SingleYearFixedTotalConstants.MaxMarkPerSubject) * 100, 2),
                     Achieved = subject.Mark,
                     GradeLevel = 12
                 });
             }
 
-            decimal percentage = (finalTotal / QatariConstants.TotalMaxMark) * 100;
-
-            // TODO: the source rules for Qatari do not specify an Egyptian equivalent total (unlike
-            // Kuwaiti's percentage × 4.10) — do not apply that conversion here until confirmed.
-
-            student.QatariTotals = new QatariStudentTotals
-            {
-                Student = student,
-                FinalTotal = Math.Round(finalTotal, 2),
-                Percentage = Math.Round(percentage, 2),
-                IslamicEducationMark = qa.IslamicEducationMark,
-                PrintedTotal = qa.PrintedTotal,
-                PrintedPercentage = qa.PrintedPercentage
-            };
+            decimal percentage = (finalTotal / SingleYearFixedTotalConstants.TotalMaxMark) * 100;
+            return (finalTotal, percentage);
         }
 
         private int GetIgPoints(string gradeType, string grade)

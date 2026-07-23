@@ -18,8 +18,10 @@ namespace StudentRegistry.Application.Mappings
                 .ForMember(dest => dest.StandardGrades, opt => opt.MapFrom(src => src.StandardGrades.Where(g => g.GradeLevel == null)))
                 .ForMember(dest => dest.KuwaitiGrades, opt => opt.MapFrom(src => src.KuwaitiTotals != null ? src.StandardGrades.Where(g => g.GradeLevel != null) : Enumerable.Empty<StandardStudentGrades>()))
                 .ForMember(dest => dest.QatariGrades, opt => opt.MapFrom(src => src.QatariTotals != null ? src.StandardGrades.Where(g => g.GradeLevel != null) : Enumerable.Empty<StandardStudentGrades>()))
+                .ForMember(dest => dest.OmaniGrades, opt => opt.MapFrom(src => src.OmaniTotals != null ? src.StandardGrades.Where(g => g.GradeLevel != null) : Enumerable.Empty<StandardStudentGrades>()))
                 .ForMember(dest => dest.KuwaitiTotals, opt => opt.MapFrom(src => src.KuwaitiTotals))
-                .ForMember(dest => dest.QatariTotals, opt => opt.MapFrom(src => src.QatariTotals));
+                .ForMember(dest => dest.QatariTotals, opt => opt.MapFrom(src => src.QatariTotals))
+                .ForMember(dest => dest.OmaniTotals, opt => opt.MapFrom(src => src.OmaniTotals));
 
             CreateMap<SaudiStudentTotals, SaudiTotalsResponseDto>();
             CreateMap<SaudiStudentGrades, SaudiGradeResponseDto>();
@@ -41,10 +43,12 @@ namespace StudentRegistry.Application.Mappings
                 .ForMember(dest => dest.MaxMark, opt => opt.MapFrom(src => src.MaxMark!.Value));
 
             CreateMap<QatariStudentTotals, QatariTotalsResponseDto>()
-                .ForMember(dest => dest.Disclaimer, opt => opt.MapFrom(_ => KuwaitiConstants.Disclaimer))
-                .ForMember(dest => dest.ComparisonNote, opt => opt.MapFrom(src => BuildQatariComparisonNote(src)));
+                .ForMember(dest => dest.Disclaimer, opt => opt.MapFrom(_ => KuwaitiConstants.Disclaimer));
 
-            CreateMap<StandardStudentGrades, QatariGradeResponseDto>()
+            CreateMap<OmaniStudentTotals, OmaniTotalsResponseDto>()
+                .ForMember(dest => dest.Disclaimer, opt => opt.MapFrom(_ => KuwaitiConstants.Disclaimer));
+
+            CreateMap<StandardStudentGrades, SingleYearSubjectMarkResponseDto>()
                 .ForMember(dest => dest.Mark, opt => opt.MapFrom(src => src.Grade));
 
             // CreateDTO -> Entity mapping
@@ -56,7 +60,8 @@ namespace StudentRegistry.Application.Mappings
                 .ForMember(dest => dest.IgGradeCounts, opt => opt.Ignore())
                 .ForMember(dest => dest.StandardGrades, opt => opt.Ignore())
                 .ForMember(dest => dest.KuwaitiTotals, opt => opt.Ignore())
-                .ForMember(dest => dest.QatariTotals, opt => opt.Ignore());
+                .ForMember(dest => dest.QatariTotals, opt => opt.Ignore())
+                .ForMember(dest => dest.OmaniTotals, opt => opt.Ignore());
 
             CreateMap<SaudiGradeCreateDto, SaudiStudentGrades>()
                 .ForMember(dest => dest.Weighted, opt => opt.MapFrom(src => src.Achieved * src.Coefficient));
@@ -65,22 +70,6 @@ namespace StudentRegistry.Application.Mappings
             
             CreateMap<StandardGradeCreateDto, StandardStudentGrades>()
                 .ForMember(dest => dest.Achieved, opt => opt.MapFrom(src => (src.Grade * src.WeightedPercentage) / 100));
-        }
-
-        // §1.5 — printed certificate figures include التربية الإسلامية (out of 800); ours excludes
-        // it (out of 700). Surface the gap and its cause rather than leaving it unexplained.
-        private static string? BuildQatariComparisonNote(QatariStudentTotals totals)
-        {
-            if (!totals.PrintedTotal.HasValue || !totals.PrintedPercentage.HasValue)
-                return null;
-
-            decimal totalDiff = totals.PrintedTotal.Value - totals.FinalTotal;
-            decimal percentageDiff = totals.PrintedPercentage.Value - totals.Percentage;
-
-            return $"المجموع المطبوع على الشهادة ({totals.PrintedTotal.Value}/800) والنسبة المطبوعة " +
-                   $"({totals.PrintedPercentage.Value}%) يشملان مادة التربية الإسلامية. الفرق عن المجموع " +
-                   $"المحتسب هنا ({totals.FinalTotal}/700, {totals.Percentage}%) هو {totalDiff} درجة " +
-                   $"({percentageDiff:0.##}%) بسبب استبعاد هذه المادة من حساب المعادلة.";
         }
     }
 }

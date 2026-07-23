@@ -20,7 +20,9 @@ namespace StudentRegistry.API.Controllers
                     { "saudi", new { name = "شهادة سعودية", tracks = new[] { "المسار العام", "مسار العلوم", "مسار الإدارة والأعمال", "مسار الهندسة والتكنولوجيا", "مسار العلوم الإنسانية" } } },
                     { "qatari", new { name = "شهادة قطرية", tracks = new[] { "المسار العلمي", "المسار الأدبي والإنسانيات", "مسار التكنولوجيا" } } },
                     { "bahraini", new { name = "شهادة بحرينية", tracks = new[] { "مسار العلوم والرياضيات", "مسار اللغات والعلوم الإنسانية", "مسار العلوم التجارية" } } },
-                    { "kuwaiti", new { name = "شهادة كويتية", tracks = new[] { "القسم العلمي", "القسم الأدبي" } } }
+                    { "kuwaiti", new { name = "شهادة كويتية", tracks = new[] { "القسم العلمي", "القسم الأدبي" } } },
+                    // §1.6 — Omani has one track only; the dropdown offers a single fixed value.
+                    { "omani", new { name = "شهادة عمانية", tracks = new[] { OmaniConstants.SingleTrack } } }
                 },
                 subjects = new Dictionary<string, string[]>
                 {
@@ -125,13 +127,27 @@ namespace StudentRegistry.API.Controllers
             var qatariConfig = new
             {
                 scientific = QatariConstants.ScientificTrackSubjects,
-                max_mark_per_subject = QatariConstants.MaxMarkPerSubject,
-                total_max = QatariConstants.TotalMaxMark,
-                islamic_education_subject = QatariConstants.IslamicEducationSubject,
+                max_mark_per_subject = SingleYearFixedTotalConstants.MaxMarkPerSubject,
+                total_max = SingleYearFixedTotalConstants.TotalMaxMark,
+                islamic_education_subject = SingleYearFixedTotalConstants.IslamicEducationSubject,
                 scientific_track_name = QatariConstants.ScientificTrack
             };
 
             return Ok(qatariConfig);
+        }
+
+        [HttpGet("subjects-omani")]
+        public IActionResult GetOmaniSubjectsConfig()
+        {
+            var omaniConfig = new
+            {
+                subjects = OmaniConstants.Subjects,
+                max_mark_per_subject = SingleYearFixedTotalConstants.MaxMarkPerSubject,
+                total_max = SingleYearFixedTotalConstants.TotalMaxMark,
+                islamic_education_subject = SingleYearFixedTotalConstants.IslamicEducationSubject
+            };
+
+            return Ok(omaniConfig);
         }
     }
 }
