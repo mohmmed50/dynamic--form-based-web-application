@@ -7,7 +7,19 @@ namespace StudentRegistry.Domain.Entities
     {
         public int Id { get; set; }
         public string StudentName { get; set; } = string.Empty;
+        public string StudentNameEn { get; set; } = string.Empty;
         public string NationalId { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string GuardianName { get; set; } = string.Empty;
+        public string GuardianPhone { get; set; } = string.Empty;
+        public string GuardianRelation { get; set; } = string.Empty;
+        public string AddressGov { get; set; } = string.Empty;
+        public string AddressCenter { get; set; } = string.Empty;
+        public string? AddressVillage { get; set; }
+        public string AddressStreet { get; set; } = string.Empty;
+        public string AddressBuilding { get; set; } = string.Empty;
+        public string? AddressFloor { get; set; }
         public string Certification { get; set; } = string.Empty;
         public string Track { get; set; } = string.Empty;
         public string PhotoPath { get; set; } = string.Empty;

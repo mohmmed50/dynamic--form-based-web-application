@@ -17,7 +17,7 @@ function initImageUpload() {
   const previewImg = document.getElementById('photo-preview');
   const photoMeta = document.getElementById('photo-meta');
   const photoFeedback = document.getElementById('photo-feedback');
-  
+
   // Drag and drop events
   ['dragenter', 'dragover'].forEach(eventName => {
     uploadWrapper.addEventListener(eventName, (e) => {
@@ -69,19 +69,19 @@ function initImageUpload() {
     const reader = new FileReader();
     reader.onload = function(e) {
       const base64Data = e.target.result;
-      
+
       // Check Aspect Ratio
       const img = new Image();
       img.onload = function() {
         const width = img.width;
         const height = img.height;
         const ratio = height / width;
-        
+
         // Target: 2:3 ratio -> height/width is ~1.5
         // Acceptable normal ratio range is 1.35 to 1.65
         let feedbackText = '';
         let feedbackClass = '';
-        
+
         if (ratio >= 1.35 && ratio <= 1.65) {
           feedbackText = 'أبعاد الصورة مناسبة (نسبة 2:3)';
           feedbackClass = 'success';
@@ -96,7 +96,7 @@ function initImageUpload() {
         photoFeedback.textContent = feedbackText;
         photoFeedback.className = 'photo-feedback ' + feedbackClass;
         previewContainer.style.display = 'flex';
-        
+
         uploadedPhotoBase64 = base64Data;
         hideAlert('form-alert');
         updateProgressIndicator();
@@ -150,7 +150,7 @@ function generateGradesTable(yearVal) {
       const card = document.createElement('div');
       card.className = 'saudi-year-card';
       card.style.cssText = 'background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-md, 8px); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));';
-      
+
       let tableRowsHtml = '';
       block.subjects.forEach((subjectObj, subjectIndex) => {
         const subjectName = subjectObj.name;
@@ -168,8 +168,8 @@ function generateGradesTable(yearVal) {
             <td class="col-subject">${displaySubjectName}</td>
             <td class="col-grade" style="text-align: center;">${coefficient}</td>
             <td class="col-weight">
-              <input type="number" min="0" max="100" step="any" required 
-                     placeholder="0-100" class="table-input saudi-achieved-input" 
+              <input type="number" min="0" max="100" step="any" required
+                     placeholder="0-100" class="table-input saudi-achieved-input"
                      data-subject="${subjectName}" data-coefficient="${coefficient}">
             </td>
             <td class="col-achieved">0.00</td>
@@ -197,7 +197,7 @@ function generateGradesTable(yearVal) {
             </tbody>
           </table>
         </div>
-        
+
         <!-- Year Subtotal Bar -->
         <div class="saudi-subtotal-bar" id="subtotal-${block.key.replace(' ', '-')}" style="margin-top: 1rem; background: var(--light-bg, #f8fafc); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: var(--radius-sm, 6px); display: flex; flex-wrap: wrap; justify-content: space-between; font-size: 0.9rem; font-weight: 600;">
           <div>مجموع الدرجات المحرزة: <span class="sub-achieved" style="color: var(--primary-color);">0.00</span></div>
@@ -216,7 +216,7 @@ function generateGradesTable(yearVal) {
     const thGrade = document.getElementById('th-grade');
     const thWeight = document.getElementById('th-weight');
     const thAchieved = document.getElementById('th-achieved');
-    
+
     if (thGrade) thGrade.textContent = 'الدرجة';
     if (thWeight) thWeight.textContent = 'النسبة الموزونة (%)';
     if (thAchieved) thAchieved.textContent = 'الدرجة المتحصلة';
@@ -230,12 +230,12 @@ function generateGradesTable(yearVal) {
         <td class="col-num">${index + 1}</td>
         <td class="col-subject">${subjectName}</td>
         <td class="col-grade">
-          <input type="number" min="0" max="100" step="any" required 
-                 placeholder="0-100" class="table-input grade-input" 
+          <input type="number" min="0" max="100" step="any" required
+                 placeholder="0-100" class="table-input grade-input"
                  data-subject="${subjectName}">
         </td>
         <td class="col-weight">
-          <input type="number" min="0" max="100" step="any" required 
+          <input type="number" min="0" max="100" step="any" required
                  placeholder="0-100" class="table-input weight-input">
         </td>
         <td class="col-achieved">0.00</td>
@@ -332,37 +332,37 @@ function setupTableCalculationListeners() {
     recalculateSaudi();
   } else {
     const rows = tableBody.querySelectorAll('tr');
-    
+
     const recalculateStandard = () => {
       rows.forEach(row => {
         const gradeInput = row.querySelector('.grade-input');
         const weightInput = row.querySelector('.weight-input');
         const achievedDisplay = row.querySelector('.col-achieved');
-        
+
         if (gradeInput && weightInput && achievedDisplay) {
           const grade = parseFloat(gradeInput.value) || 0;
           const weight = parseFloat(weightInput.value) || 0;
-          
+
           if (gradeInput.value !== '' && (grade < 0 || grade > 100)) {
             gradeInput.style.borderColor = 'var(--danger-color)';
           } else {
             gradeInput.style.borderColor = '';
           }
-          
+
           if (weightInput.value !== '' && (weight < 0 || weight > 100)) {
             weightInput.style.borderColor = 'var(--danger-color)';
           } else {
             weightInput.style.borderColor = '';
           }
-          
+
           const achieved = (grade * weight) / 100;
           achievedDisplay.textContent = achieved.toFixed(2);
         }
       });
-      
+
       updateProgressIndicator();
     };
-    
+
     rows.forEach(row => {
       const gradeInput = row.querySelector('.grade-input');
       const weightInput = row.querySelector('.weight-input');
@@ -373,7 +373,7 @@ function setupTableCalculationListeners() {
         weightInput.addEventListener('blur', recalculateStandard);
       }
     });
-    
+
     recalculateStandard();
   }
 }
@@ -415,7 +415,7 @@ function setupIGCalculatorListeners() {
     el.addEventListener('change', calculateIGScore);
     el.addEventListener('input', calculateIGScore);
   });
-  
+
   const factorCheck = document.getElementById('ig-factor-check');
   const factorContainer = document.getElementById('ig-factor-input-container');
   if (factorCheck && factorContainer) {
@@ -438,7 +438,7 @@ function resetIGCalculator() {
   if (factorContainer) factorContainer.style.display = 'none';
   const sportsBonus = document.getElementById('ig-sports-bonus');
   if (sportsBonus) sportsBonus.value = '0';
-  
+
   calculateIGScore();
 }
 
@@ -446,10 +446,10 @@ function calculateIGScore() {
   const trackSelect = document.getElementById('track-select');
   if (!trackSelect) return;
   const trackVal = trackSelect.value;
-  
+
   let subsystemKey = '';
   let maxPointVal = 8;
-  
+
   if (trackVal.includes('IGCSE')) {
     subsystemKey = 'igcse';
     maxPointVal = 8;
@@ -462,10 +462,10 @@ function calculateIGScore() {
   } else {
     return;
   }
-  
+
   let totalPoints = 0;
   let totalSubjects = 0;
-  
+
   if (subsystemKey === 'igcse') {
     // Legacy
     document.querySelectorAll('.ig-grade-input[data-grade-type="igcse-legacy"]').forEach(el => {
@@ -500,24 +500,24 @@ function calculateIGScore() {
       totalSubjects += count;
     });
   }
-  
+
   const maxPoints = totalSubjects * maxPointVal;
   let scorePercentage = maxPoints > 0 ? (totalPoints / maxPoints) * 100 : 0;
-  
+
   // Factor
   const factorCheck = document.getElementById('ig-factor-check');
   if (factorCheck && factorCheck.checked) {
     const factor = parseFloat(document.getElementById('ig-factor-val').value) || 1.2;
     scorePercentage *= factor;
   }
-  
+
   // Sports Bonus
   const sportsBonus = parseFloat(document.getElementById('ig-sports-bonus').value) || 0;
   scorePercentage += sportsBonus;
-  
+
   // Government Score
   const governmentScore = (scorePercentage / 100) * 410;
-  
+
   // Display Results
   document.getElementById('ig-percentage-val').textContent = scorePercentage.toFixed(2) + '%';
   document.getElementById('ig-gov-val').textContent = governmentScore.toFixed(2) + ' / 410';
@@ -615,6 +615,17 @@ function validateForm() {
         element: el
       };
     }
+  }
+
+  // Email format check
+  const studentEmailInput = document.getElementById('student-email');
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(studentEmailInput.value.trim())) {
+    return {
+      valid: false,
+      message: 'الرجاء إدخال بريد إلكتروني صحيح.',
+      element: studentEmailInput
+    };
   }
 
   // 3. National ID
@@ -727,7 +738,7 @@ function validateForm() {
         element: yearSelect
       };
     }
-    
+
     for (let i = 0; i < saudiInputs.length; i++) {
       const val = parseFloat(saudiInputs[i].value);
       if (saudiInputs[i].value === '' || isNaN(val) || val < 0 || val > 100) {
@@ -806,7 +817,7 @@ function compilePayload() {
     let igProgram = 'IGCSE';
     let gradesData = {};
     let totalSubjects = 0;
-    
+
     if (trackVal.includes('IGCSE')) {
       igProgram = 'IGCSE';
       const igcseGrades = {};
@@ -844,14 +855,14 @@ function compilePayload() {
       aGrades.totalSubjects = totalSubjects;
       gradesData = { a_level: aGrades };
     }
-    
+
     const factorCheck = document.getElementById('ig-factor-check');
     const factor = factorCheck && factorCheck.checked ? parseFloat(document.getElementById('ig-factor-val').value) || 1.2 : 1.0;
     const sportsBonus = parseFloat(document.getElementById('ig-sports-bonus').value) || 0.0;
-    
+
     const scorePercentage = parseFloat(document.getElementById('ig-percentage-val').textContent) || 0.0;
     const governmentScore = parseFloat(document.getElementById('ig-gov-val').textContent) || 0.0;
-    
+
     return {
       ...personalInfo,
       nationalId: document.getElementById('national-id').value.trim(),
@@ -880,7 +891,7 @@ function compilePayload() {
       const yearLabelEl = card.querySelector('.saudi-year-title');
       // Extract label and key (e.g. "Year 1" or similar)
       const labelText = yearLabelEl ? yearLabelEl.textContent.trim().replace('📚 ', '') : 'السنة الدراسية';
-      
+
       // Determine year key (e.g. "Year 1") from the subtotal element's ID
       const subtotalEl = card.querySelector('.saudi-subtotal-bar');
       const subtotalId = subtotalEl ? subtotalEl.id : 'subtotal-Year-1';
@@ -976,12 +987,24 @@ function compilePayload() {
   };
 }
 
-// Send Data to ASP.NET Core API with local backup fallback
+// Send Data to the ASP.NET Core API (same-origin, served by this app) with local backup fallback
 function sendData(payload, submitBtn, originalText) {
   // Convert payload to ASP.NET Core DTO structure
   const apiPayload = {
     studentName: payload.studentName,
+    studentNameEn: payload.studentNameEn,
     nationalId: payload.nationalId,
+    phone: payload.studentPhone,
+    email: payload.studentEmail,
+    guardianName: payload.guardianName,
+    guardianPhone: payload.guardianPhone,
+    guardianRelation: payload.guardianRelation,
+    addressGov: payload.addressGov,
+    addressCenter: payload.addressCenter,
+    addressVillage: payload.addressVillage,
+    addressStreet: payload.addressStreet,
+    addressBuilding: payload.addressBuilding,
+    addressFloor: payload.addressFloor,
     certification: payload.certification === 'شهادة سعودية' ? 'Saudi Certificate' : (payload.certification.includes('IG') ? 'IG' : payload.certification),
     track: payload.track,
     photo: payload.photo
@@ -1005,10 +1028,10 @@ function sendData(payload, submitBtn, originalText) {
     apiPayload.factor = payload.factor;
     apiPayload.sportsBonus = payload.sportsBonus;
     apiPayload.igGradeCounts = [];
-    
+
     const activeSubkey = payload.igProgram === 'IGCSE' ? 'igcse' : (payload.igProgram === 'AS-Levels' ? 'as_level' : 'a_level');
     const gradesObj = payload.grades[activeSubkey] || {};
-    
+
     Object.keys(gradesObj).forEach(gradeKey => {
       let gradeType = 'igcse-legacy';
       if (payload.igProgram === 'IGCSE') {
@@ -1036,7 +1059,7 @@ function sendData(payload, submitBtn, originalText) {
     }));
   }
 
-  fetch('http://localhost:5000/api/students/register', {
+  fetch('/api/students/register', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -1057,13 +1080,13 @@ function sendData(payload, submitBtn, originalText) {
   })
   .catch(error => {
     console.warn('Backend submission failed. Storing in localStorage instead.', error);
-    
+
     // Save to localStorage as secondary backup
     try {
       const existingSubmissions = JSON.parse(localStorage.getItem('student_submissions') || '[]');
       existingSubmissions.push(payload);
       localStorage.setItem('student_submissions', JSON.stringify(existingSubmissions));
-      
+
       showSuccessScreen(payload, 'local');
     } catch(storageError) {
       console.error('Failed to store in localStorage', storageError);
@@ -1081,7 +1104,7 @@ function sendData(payload, submitBtn, originalText) {
 function showSuccessScreen(payload, mode, serverPath = '') {
   document.getElementById('student-reg-form').style.display = 'none';
   document.getElementById('step-bar-container').style.display = 'none';
-  
+
   const successScreen = document.getElementById('success-screen');
   successScreen.style.display = 'block';
 
@@ -1089,7 +1112,7 @@ function showSuccessScreen(payload, mode, serverPath = '') {
   document.getElementById('receipt-name').textContent = payload.studentName;
   document.getElementById('receipt-id').textContent = payload.nationalId;
   document.getElementById('receipt-cert').textContent = payload.certification;
-  
+
   const programRow = document.getElementById('receipt-program-row');
   const yearRow = document.getElementById('receipt-year-row');
   const yearLabel = document.getElementById('receipt-year-label');
@@ -1100,7 +1123,7 @@ function showSuccessScreen(payload, mode, serverPath = '') {
     if (programRow) programRow.style.display = 'none';
     if (yearRow) yearRow.style.display = 'flex';
     if (yearLabel) yearLabel.textContent = 'عدد سنوات الدراسة:';
-    
+
     let yearsText = payload.yearsCount;
     if (payload.yearsCount === 'One Year') yearsText = 'سنة واحدة';
     else if (payload.yearsCount === 'Two Years') yearsText = 'سنتان';
@@ -1184,7 +1207,7 @@ function downloadReceiptFile(payload, format) {
     csvRows.push(`رقم العماره,"${payload.addressBuilding || ''}"`);
     csvRows.push(`رقم الدور,"${payload.addressFloor || ''}"`);
     csvRows.push(`نوع الشهادة,"${payload.certification}"`);
-    
+
     if (payload.yearsCount) {
       csvRows.push(`مسار الدراسة,"${payload.track}"`);
       csvRows.push(`عدد سنوات الدراسة,"${payload.yearsCount}"`);
@@ -1194,7 +1217,7 @@ function downloadReceiptFile(payload, format) {
       csvRows.push(`النسبة المئوية النهائية (GPA),${payload.overallTotals.finalPercentage}%`);
       csvRows.push(`تاريخ الإرسال,${payload.submittedAt}`);
       csvRows.push('');
-      
+
       payload.years.forEach(yr => {
         csvRows.push(`-- ${yr.yearLabelAr} --`);
         csvRows.push('المادة,المعامل,الدرجة المحرزة,الدرجة الموزونة');
@@ -1215,7 +1238,7 @@ function downloadReceiptFile(payload, format) {
       csvRows.push(`المجموع الحكومي المعادل,${payload.governmentScore}/410`);
       csvRows.push('');
       csvRows.push('التقدير,العدد');
-      
+
       const activeSubkey = payload.igProgram === 'IGCSE' ? 'igcse' : (payload.igProgram === 'AS-Levels' ? 'as_level' : 'a_level');
       const gradesObj = payload.grades[activeSubkey] || {};
       Object.keys(gradesObj).forEach(gradeKey => {
@@ -1227,7 +1250,7 @@ function downloadReceiptFile(payload, format) {
       csvRows.push(`تاريخ الإرسال,${payload.submittedAt}`);
       csvRows.push('');
       csvRows.push('المادة,الدرجة,النسبة الموزونة,الدرجة المتحصلة');
-      
+
       payload.grades.forEach(g => {
         csvRows.push(`"${g.subjectName}",${g.grade},${g.weighted},${g.achieved}`);
       });

@@ -22,9 +22,9 @@ The ASP.NET Core API implements built-in, lightweight health checks exposing sys
 *   **Static Asset Caching**: Set IIS caching headers for static content served from `wwwroot/uploads` (e.g. `Cache-Control: public, max-age=31536000`).
 *   **AsNoTracking Queries**: Retrieve configuration data (certifications, tracks) using Entity Framework Core's `.AsNoTracking()` to avoid object-tracking memory overhead.
 
-### B. Angular Frontend
-*   **Standalone Components**: Minimizes angular module overhead.
-*   **Production Compilation**: Run `npm run build` to enable tree-shaking, bundle minification, and Ahead-of-Time (AOT) compilation.
+### B. Static Asset Delivery
+*   **No client bundler/build step**: `wwwroot/js` and `wwwroot/css` are plain files served as-is by ASP.NET Core static files middleware — there is no Angular/webpack build to run.
+*   **Response compression**: Consider enabling `Microsoft.AspNetCore.ResponseCompression` for the CSS/JS assets if bandwidth becomes a concern.
 
 ---
 
@@ -123,5 +123,5 @@ If the application requires scaling to multiple Windows servers behind a load ba
 
 ## 7. Maintainability & Code Quality
 
-*   **Clean Layered Architecture**: Strictly separates concerns into Domain (Models), Application (Business Logic & Validators), Data (DbContext), Repository (Queries), Infrastructure (File Storage), and API (Controllers).
-*   **Regression Tests**: Located in `frontend/src/app/app.component.spec.ts`. Run `npm run test` to verify that GPA and IG scoring logic match the legacy JavaScript functions verbatim.
+*   **Clean Layered Architecture**: Strictly separates concerns into Domain (Models), Application (Business Logic & Validators), Data (DbContext), Repository (Queries), Infrastructure (File Storage), and API (Controllers + Razor Pages UI).
+*   **Regression Tests**: There is currently no automated test coverage for the GPA/IG scoring logic in `wwwroot/js/form-handler.js` — verify calculation changes manually against `StudentService.cs`'s formulas (see `ARCHITECTURE.md`'s "Known Housekeeping Gaps").

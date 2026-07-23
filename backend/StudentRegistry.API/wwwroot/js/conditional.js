@@ -1,182 +1,30 @@
-// Fallback data structure for offline or local file:// environment
-const subjectsFallback = {
-  "certifications": {
-    "ig": {
-      "name": "شهادات الـ IG (IGCSE/O-Level/A-Level)",
-      "tracks": [
-        "IGCSE (Early Years) - مواد عامة",
-        "A-Levels (Advanced Years) - تخصص علمي أو أدبي",
-        "AS-Levels (Intermediate Year) - انتقالى"
-      ]
-    },
-    "saudi": {
-      "name": "شهادة سعودية",
-      "tracks": [
-        "المسار العام",
-        "مسار العلوم",
-        "مسار الإدارة والأعمال",
-        "مسار الهندسة والتكنولوجيا",
-        "مسار العلوم الإنسانية"
-      ]
-    },
-    "qatari": {
-      "name": "شهادة قطرية",
-      "tracks": [
-        "المسار العلمي",
-        "المسار الأدبي والإنسانيات",
-        "مسار التكنولوجيا"
-      ]
-    },
-    "bahraini": {
-      "name": "شهادة بحرينية",
-      "tracks": [
-        "مسار العلوم والرياضيات",
-        "مسار اللغات والعلوم الإنسانية",
-        "مسار العلوم التجارية"
-      ]
-    },
-    "kuwaiti": {
-      "name": "شهادة كويتية",
-      "tracks": [
-        "القسم العلمي",
-        "القسم الأدبي"
-      ]
-    }
-  },
-  "subjects": {
-    "year_1": [
-      "اللغة العربية",
-      "اللغة الإنجليزية",
-      "الرياضيات",
-      "الكيمياء",
-      "الفيزياء",
-      "الأحياء",
-      "الدراسات الإسلامية",
-      "الدراسات الاجتماعية"
-    ],
-    "year_2": [
-      "اللغة العربية",
-      "اللغة الإنجليزية",
-      "الرياضيات (2)",
-      "الكيمياء",
-      "الفيزياء",
-      "الأحياء",
-      "الحاسب الآلي",
-      "الدراسات الإسلامية"
-    ],
-    "year_3": [
-      "اللغة العربية",
-      "اللغة الإنجليزية",
-      "الرياضيات (3)",
-      "الكيمياء",
-      "الفيزياء",
-      "الجيولوجيا والعلوم البيئية",
-      "الدراسات الإسلامية",
-      "التربية الوطنية"
-    ]
-  }
-};
+let appConfig = null;
+let saudiConfig = null;
 
-const saudiSubjectsFallback = {
-  "block_1": [
-    { "name": "مصادر المعلومات والبحث", "coefficient": 3 },
-    { "name": "الفيزياء", "coefficient": 5 },
-    { "name": "الرياضيات", "coefficient": 4 },
-    { "name": "الجغرافيا", "coefficient": 3 },
-    { "name": "الكيمياء", "coefficient": 5 },
-    { "name": "اللغة الإنجليزية", "coefficient": 4 },
-    { "name": "التقنية الرقمية", "coefficient": 3 },
-    { "name": "التنمية المستدامة", "coefficient": 3 },
-    { "name": "الفيزياء", "coefficient": 5 },
-    { "name": "المهارات الحياتية", "coefficient": 3 },
-    { "name": "الرياضيات", "coefficient": 4 },
-    { "name": "المواطنة الرقمية", "coefficient": 3 },
-    { "name": "اللغة الإنجليزية", "coefficient": 4 },
-    { "name": "علم الأرض والفضاء", "coefficient": 4 },
-    { "name": "التنمية المستدامة", "coefficient": 4 },
-    { "name": "الفقه", "coefficient": 3 },
-    { "name": "الفيزياء", "coefficient": 5 },
-    { "name": "الرياضيات", "coefficient": 4 },
-    { "name": "التربية الصحية والبدنية", "coefficient": 4 },
-    { "name": "الدراسات النفسية والاجتماعية", "coefficient": 3 },
-    { "name": "اللغة الإنجليزية", "coefficient": 5 },
-    { "name": "علم الأرض والفضاء", "coefficient": 4 },
-    { "name": "الدراسات الأدبية", "coefficient": 3 },
-    { "name": "التنمية المستدامة", "coefficient": 3 }
-  ],
-  "block_2": [
-    { "name": "علم الأحياء", "coefficient": 4 },
-    { "name": "التربية البدنية والدفاع عن النفس", "coefficient": 5 },
-    { "name": "اللياقة والثقافة الصحية", "coefficient": 5 },
-    { "name": "الفنون", "coefficient": 3 },
-    { "name": "الكيمياء", "coefficient": 5 },
-    { "name": "اللغة الإنجليزية", "coefficient": 5 },
-    { "name": "التوحيد", "coefficient": 5 },
-    { "name": "الكفايات اللغوية", "coefficient": 3 },
-    { "name": "التاريخ", "coefficient": 5 },
-    { "name": "علم الأحياء", "coefficient": 4 },
-    { "name": "التربية البدنية والدفاع عن النفس", "coefficient": 5 },
-    { "name": "الكيمياء", "coefficient": 5 },
-    { "name": "اللغة الإنجليزية", "coefficient": 5 },
-    { "name": "التقنية الرقمية", "coefficient": 3 },
-    { "name": "الفيزياء", "coefficient": 5 },
-    { "name": "الكفايات اللغوية", "coefficient": 3 },
-    { "name": "علم الأحياء", "coefficient": 4 },
-    { "name": "التربية البدنية والدفاع عن النفس", "coefficient": 5 },
-    { "name": "الكيمياء", "coefficient": 5 },
-    { "name": "اللغة الإنجليزية", "coefficient": 5 },
-    { "name": "التقنية الرقمية", "coefficient": 3 }
-  ],
-  "block_3": [
-    { "name": "القرآن الكريم والتفسير", "coefficient": 4 },
-    { "name": "الكفايات اللغوية", "coefficient": 5 },
-    { "name": "علم الأحياء", "coefficient": 5 },
-    { "name": "التربية البدنية والدفاع عن النفس", "coefficient": 5 },
-    { "name": "اللغة الإنجليزية", "coefficient": 5 },
-    { "name": "التقنية الرقمية", "coefficient": 3 },
-    { "name": "التفكير الناقد", "coefficient": 4 },
-    { "name": "الفيزياء", "coefficient": 5 },
-    { "name": "علم البيئة", "coefficient": 3 },
-    { "name": "الكفايات اللغوية", "coefficient": 5 },
-    { "name": "الرياضيات", "coefficient": 5 },
-    { "name": "التربية الصحية والبدنية", "coefficient": 3 },
-    { "name": "اللغة الإنجليزية", "coefficient": 5 },
-    { "name": "التقنية الرقمية", "coefficient": 3 },
-    { "name": "التربية المهنية", "coefficient": 3 },
-    { "name": "علم البيئة", "coefficient": 3 },
-    { "name": "الرياضيات", "coefficient": 5 },
-    { "name": "الدراسات الاجتماعية", "coefficient": 5 },
-    { "name": "التربية الصحية والبدنية", "coefficient": 3 },
-    { "name": "الكيمياء", "coefficient": 5 },
-    { "name": "اللغة الإنجليزية", "coefficient": 5 },
-    { "name": "التقنية الرقمية", "coefficient": 3 },
-    { "name": "الحديث والثقافة الإسلامية", "coefficient": 3 }
-  ]
-};
-
-let appConfig = subjectsFallback;
-let saudiConfig = saudiSubjectsFallback;
-
-// Fetch config from data/subjects.json and data/subjects_saudi.json
+// Fetch config from the ConfigController API (single source of truth)
 async function loadSubjectsConfig() {
   try {
-    const response = await fetch('data/subjects.json');
+    const response = await fetch('/api/config/subjects');
     if (response.ok) {
       appConfig = await response.json();
-      console.log('Successfully loaded subjects configuration from JSON.');
+    } else {
+      throw new Error('Failed to load /api/config/subjects: ' + response.status);
     }
   } catch (error) {
-    console.warn('Failed to load JSON data. Using fallback local configuration objects.', error);
+    console.error('Could not load certifications/subjects configuration.', error);
+    showAlert('form-alert', 'تعذر تحميل بيانات الشهادات والمواد من الخادم. الرجاء تحديث الصفحة.', 'danger');
   }
 
   try {
-    const response = await fetch('data/subjects_saudi.json');
+    const response = await fetch('/api/config/subjects-saudi');
     if (response.ok) {
       saudiConfig = await response.json();
-      console.log('Successfully loaded Saudi subjects configuration from JSON.');
+    } else {
+      throw new Error('Failed to load /api/config/subjects-saudi: ' + response.status);
     }
   } catch (error) {
-    console.warn('Failed to load Saudi JSON data. Using fallback local configuration objects.', error);
+    console.error('Could not load Saudi subjects configuration.', error);
+    showAlert('form-alert', 'تعذر تحميل بيانات مواد الشهادة السعودية من الخادم. الرجاء تحديث الصفحة.', 'danger');
   }
 }
 
@@ -212,7 +60,7 @@ function getSaudiBlocks(yearVal) {
   const b1 = saudiConfig.block_1 || [];
   const b2 = saudiConfig.block_2 || [];
   const b3 = saudiConfig.block_3 || [];
-  
+
   const blocks = [];
   if (yearVal === 'One Year') {
     blocks.push({
@@ -282,7 +130,9 @@ function initConditionals() {
 
   // Load configuration
   loadSubjectsConfig().then(() => {
-    populateCertifications();
+    if (appConfig) {
+      populateCertifications();
+    }
   });
 
   function populateCertifications() {
@@ -307,7 +157,7 @@ function initConditionals() {
 
     adjustYearSelect(certKey);
     yearSelect.value = '';
-    
+
     // Hide following sections
     deactivateSection('section-track');
     deactivateSection('section-year');
@@ -343,7 +193,7 @@ function initConditionals() {
       });
       activateSection('section-track');
     }
-    
+
     updateProgressIndicator();
   });
 
@@ -355,10 +205,10 @@ function initConditionals() {
     if (trackVal) {
       trackSelect.disabled = true;
       trackLockedIndicator.style.display = 'flex';
-      
+
       if (certKey === 'ig') {
         activateSection('section-grades');
-        
+
         document.getElementById('ig-sub-igcse').style.display = 'none';
         document.getElementById('ig-sub-as').style.display = 'none';
         document.getElementById('ig-sub-a').style.display = 'none';
@@ -370,7 +220,7 @@ function initConditionals() {
         } else if (trackVal.includes('A-Levels')) {
           document.getElementById('ig-sub-a').style.display = 'block';
         }
-        
+
         if (typeof calculateIGScore === 'function') {
           calculateIGScore();
         }
@@ -382,7 +232,7 @@ function initConditionals() {
       deactivateSection('section-year');
       deactivateSection('section-grades');
     }
-    
+
     updateProgressIndicator();
   });
 
@@ -396,7 +246,7 @@ function initConditionals() {
     } else {
       deactivateSection('section-grades');
     }
-    
+
     updateProgressIndicator();
   });
 }
