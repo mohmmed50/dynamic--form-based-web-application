@@ -404,6 +404,8 @@ Before merging or deploying any new feature:
 | `qatari` | شهادة قطرية | المسار العلمي / المسار الأدبي والإنسانيات / مسار التكنولوجيا |
 | `bahraini` | شهادة بحرينية | مسار العلوم والرياضيات / مسار اللغات والعلوم الإنسانية / مسار العلوم التجارية |
 | `kuwaiti` | شهادة كويتية | القسم العلمي / القسم الأدبي |
+| `omani` | شهادة عمانية | الشهادة الثانوية العمانية (single fixed track) |
+| `yemeni` | شهادة يمنية | الشهادة الثانوية اليمنية (single fixed track) |
 
 **Standard subjects** (`GET /api/config/subjects` → `subjects`, used by Qatari/Bahraini/Kuwaiti certs): `year_1`, `year_2`, `year_3` — each an array of ~8 Arabic subject names.
 

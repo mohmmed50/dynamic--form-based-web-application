@@ -3,6 +3,7 @@ let saudiConfig = null;
 let kuwaitiConfig = null;
 let qatariConfig = null;
 let omaniConfig = null;
+let yemeniConfig = null;
 
 // Fetch config from the ConfigController API (single source of truth)
 async function loadSubjectsConfig() {
@@ -64,6 +65,18 @@ async function loadSubjectsConfig() {
   } catch (error) {
     console.error('Could not load Omani subjects configuration.', error);
     showAlert('form-alert', 'تعذر تحميل بيانات مواد الشهادة العمانية من الخادم. الرجاء تحديث الصفحة.', 'danger');
+  }
+
+  try {
+    const response = await fetch('/api/config/subjects-yemeni');
+    if (response.ok) {
+      yemeniConfig = await response.json();
+    } else {
+      throw new Error('Failed to load /api/config/subjects-yemeni: ' + response.status);
+    }
+  } catch (error) {
+    console.error('Could not load Yemeni subjects configuration.', error);
+    showAlert('form-alert', 'تعذر تحميل بيانات مواد الشهادة اليمنية من الخادم. الرجاء تحديث الصفحة.', 'danger');
   }
 }
 
@@ -208,6 +221,7 @@ function initConditionals() {
     document.getElementById('kuwaiti-grades-container').style.display = 'none';
     document.getElementById('qatari-grades-container').style.display = 'none';
     document.getElementById('omani-grades-container').style.display = 'none';
+    document.getElementById('yemeni-grades-container').style.display = 'none';
     document.getElementById('section-year').style.display = 'block';
     document.getElementById('section-grades-title').textContent = 'جدول إدخال الدرجات';
     document.getElementById('section-grades-desc').textContent = 'أدخل الدرجة والنسبة الموزونة لكل مادة أدناه. سيتم احتساب الدرجة المتحصلة تلقائياً.';
@@ -244,6 +258,13 @@ function initConditionals() {
         document.getElementById('omani-grades-container').style.display = 'block';
         document.getElementById('section-grades-title').textContent = '🧮 حاسبة الشهادة العمانية';
         document.getElementById('section-grades-desc').textContent = 'أدخل درجة كل مادة من المواد السبع المعتمدة للصف الثاني عشر.';
+      } else if (certKey === 'yemeni') {
+        // Yemeni cert is grade-12-only, single track — no year-select section at all.
+        document.getElementById('section-year').style.display = 'none';
+        document.getElementById('non-ig-grades-container').style.display = 'none';
+        document.getElementById('yemeni-grades-container').style.display = 'block';
+        document.getElementById('section-grades-title').textContent = '🧮 حاسبة الشهادة اليمنية';
+        document.getElementById('section-grades-desc').textContent = 'أدخل درجة كل مادة من المواد الست المعتمدة للصف الثاني عشر.';
       }
 
       // Populate track options
@@ -298,6 +319,11 @@ function initConditionals() {
         activateSection('section-grades');
         if (typeof generateOmaniGradesUI === 'function') {
           generateOmaniGradesUI();
+        }
+      } else if (certKey === 'yemeni') {
+        activateSection('section-grades');
+        if (typeof generateYemeniGradesUI === 'function') {
+          generateYemeniGradesUI();
         }
       } else {
         yearSelect.value = '';

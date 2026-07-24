@@ -15,6 +15,7 @@ USE [StudentRegistryDb];
 GO
 
 -- 2. Drop existing tables if they exist (in reverse order of foreign keys)
+IF OBJECT_ID('dbo.YemeniStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.YemeniStudentTotals;
 IF OBJECT_ID('dbo.OmaniStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.OmaniStudentTotals;
 IF OBJECT_ID('dbo.QatariStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.QatariStudentTotals;
 IF OBJECT_ID('dbo.KuwaitiStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.KuwaitiStudentTotals;
@@ -187,6 +188,19 @@ CREATE TABLE dbo.OmaniStudentTotals (
     Percentage DECIMAL(5,2) NOT NULL,
     CONSTRAINT PK_OmaniStudentTotals PRIMARY KEY CLUSTERED (StudentId ASC),
     CONSTRAINT FK_OmaniStudentTotals_Students_StudentId FOREIGN KEY (StudentId)
+        REFERENCES dbo.Students (Id) ON DELETE CASCADE
+);
+GO
+
+-- 12. Create YemeniStudentTotals Table (One-to-One with Students)
+-- Single grade level, 6 subjects fixed at 100 each, fixed denominator 600 — no excluded subject,
+-- no documentation-only fields (matches the trimmed Qatari/Omani shape).
+CREATE TABLE dbo.YemeniStudentTotals (
+    StudentId INT NOT NULL,
+    FinalTotal DECIMAL(6,2) NOT NULL,       -- out of 600
+    Percentage DECIMAL(5,2) NOT NULL,
+    CONSTRAINT PK_YemeniStudentTotals PRIMARY KEY CLUSTERED (StudentId ASC),
+    CONSTRAINT FK_YemeniStudentTotals_Students_StudentId FOREIGN KEY (StudentId)
         REFERENCES dbo.Students (Id) ON DELETE CASCADE
 );
 GO
