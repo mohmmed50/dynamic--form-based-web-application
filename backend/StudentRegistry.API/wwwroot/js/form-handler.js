@@ -191,7 +191,7 @@ function generateGradesTable(yearVal) {
         </div>
 
         <div class="saudi-add-subject-row">
-          <button type="button" class="saudi-add-subject-btn">+ إضافة مادة</button>
+          <button type="button" class="saudi-add-subject-btn">إضافة مادة</button>
         </div>
 
         <!-- Year Subtotal Bar -->
