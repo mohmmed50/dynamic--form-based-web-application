@@ -80,7 +80,10 @@ namespace StudentRegistry.Application.Validators
                 RuleForEach(x => x.SaudiGrades).ChildRules(grade =>
                 {
                     grade.RuleFor(g => g.YearLabel).NotEmpty();
-                    grade.RuleFor(g => g.SubjectName).NotEmpty().WithMessage("اسم المادة مطلوب.");
+                    grade.RuleFor(g => g.SubjectName)
+                        .NotEmpty().WithMessage("اسم المادة مطلوب.")
+                        .Must(NotBeDeniedSaudiSubject)
+                        .WithMessage("لا يمكن إضافة هذه المادة لأنها غير داخلة في حساب التنسيق المصري.");
                     grade.RuleFor(g => g.Achieved).GreaterThan(0).WithMessage("الدرجة المتحصلة يجب أن تكون أكبر من الصفر.");
                     grade.RuleFor(g => g.Weighted).GreaterThan(0).WithMessage("الدرجة الموزونة يجب أن تكون أكبر من الصفر.");
                     grade.RuleFor(g => g)
@@ -355,6 +358,39 @@ namespace StudentRegistry.Application.Validators
             if (grade.Achieved <= 0) return false;
             var coefficient = grade.Weighted / grade.Achieved;
             return Math.Abs(coefficient - Math.Round(coefficient)) < 0.001m;
+        }
+
+        // Mirrors wwwroot/js/form-handler.js's normalizeArabicSubject/checkSaudiSubjectAllowed —
+        // re-validated here since students can add arbitrary subject names client-side.
+        private bool NotBeDeniedSaudiSubject(string subjectName)
+        {
+            var normalized = NormalizeArabicSubject(subjectName);
+            if (string.IsNullOrEmpty(normalized)) return true; // caught by NotEmpty separately
+
+            foreach (var denied in SaudiConstants.DeniedSubjectsExact)
+            {
+                if (NormalizeArabicSubject(denied) == normalized) return false;
+            }
+
+            foreach (var keyword in SaudiConstants.DeniedKeywords)
+            {
+                if (normalized.Contains(keyword)) return false;
+            }
+
+            return true;
+        }
+
+        private static string NormalizeArabicSubject(string? text)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+            var value = text.Trim();
+            value = System.Text.RegularExpressions.Regex.Replace(value, @"\s+", " ");
+            value = value
+                .Replace('أ', 'ا').Replace('إ', 'ا').Replace('آ', 'ا')
+                .Replace('ة', 'ه')
+                .Replace('ى', 'ي');
+            value = System.Text.RegularExpressions.Regex.Replace(value, @"[ً-ْـ]", "");
+            return value.ToLowerInvariant();
         }
     }
 }
