@@ -124,7 +124,7 @@ namespace StudentRegistry.Application.Validators
                 });
             });
 
-            When(x => !IsSaudiCert(x.Certification) && !IsIgCert(x.Certification) && !IsKuwaitiCert(x.Certification) && !IsQatariCert(x.Certification) && !IsOmaniCert(x.Certification), () =>
+            When(x => !IsSaudiCert(x.Certification) && !IsIgCert(x.Certification) && !IsKuwaitiCert(x.Certification) && !IsQatariCert(x.Certification) && !IsOmaniCert(x.Certification) && !IsYemeniCert(x.Certification), () =>
             {
                 RuleFor(x => x.YearOfStudy)
                     .NotEmpty().WithMessage("الرجاء اختيار السنة الدراسية.");
@@ -222,7 +222,8 @@ namespace StudentRegistry.Application.Validators
                         .Must(subjects => MatchesExactSingleYearSubjectSet(subjects, QatariConstants.ScientificTrackSubjects))
                         .WithMessage("قائمة المواد يجب أن تطابق تماماً مواد المسار العلمي السبع، بدون نقص أو زيادة أو تكرار.");
 
-                    RuleForEach(x => x.QatariData!.Subjects).ChildRules(ValidateSingleYearSubjectRow);
+                    RuleForEach(x => x.QatariData!.Subjects).ChildRules(subject =>
+                        ValidateSingleYearSubjectRow(subject, SingleYearFixedTotalConstants.IslamicEducationSubject));
                 });
             });
 
@@ -237,12 +238,31 @@ namespace StudentRegistry.Application.Validators
                         .Must(subjects => MatchesExactSingleYearSubjectSet(subjects, OmaniConstants.Subjects))
                         .WithMessage("قائمة المواد يجب أن تطابق تماماً المواد السبع المعتمدة، بدون نقص أو زيادة أو تكرار.");
 
-                    RuleForEach(x => x.OmaniData!.Subjects).ChildRules(ValidateSingleYearSubjectRow);
+                    RuleForEach(x => x.OmaniData!.Subjects).ChildRules(subject =>
+                        ValidateSingleYearSubjectRow(subject, SingleYearFixedTotalConstants.IslamicEducationSubject));
+                });
+            });
+
+            When(x => IsYemeniCert(x.Certification), () =>
+            {
+                RuleFor(x => x.YemeniData)
+                    .NotNull().WithMessage("بيانات الشهادة اليمنية مطلوبة.");
+
+                When(x => x.YemeniData != null, () =>
+                {
+                    RuleFor(x => x.YemeniData!.Subjects)
+                        .Must(subjects => MatchesExactSingleYearSubjectSet(subjects, YemeniConstants.Subjects))
+                        .WithMessage("قائمة المواد يجب أن تطابق تماماً المواد الست المعتمدة، بدون نقص أو زيادة أو تكرار.");
+
+                    // §1.3 — no excluded subject for Yemeni: any name outside the 6 counted subjects
+                    // (including التربية الإسلامية) simply fails the exact-set check above.
+                    RuleForEach(x => x.YemeniData!.Subjects).ChildRules(subject =>
+                        ValidateSingleYearSubjectRow(subject, excludedSubject: null));
                 });
             });
         }
 
-        // Shared by Qatari and Omani (both single-year, fixed-100-per-subject, 7-subject certificates).
+        // Shared by Qatari, Omani and Yemeni (all single-year, fixed-100-per-subject certificates).
         private bool MatchesExactSingleYearSubjectSet(
             System.Collections.Generic.List<SingleYearSubjectMarkCreateDto>? subjects, string[] required)
         {
@@ -253,12 +273,18 @@ namespace StudentRegistry.Application.Validators
             return required.All(names.Contains);
         }
 
-        private void ValidateSingleYearSubjectRow(InlineValidator<SingleYearSubjectMarkCreateDto> subject)
+        // excludedSubject is null for certs with no carve-out (Yemeni) — the NotEqual rule is
+        // skipped in that case rather than assuming every cert in this family excludes something.
+        private void ValidateSingleYearSubjectRow(InlineValidator<SingleYearSubjectMarkCreateDto> subject, string? excludedSubject)
         {
-            subject.RuleFor(g => g.SubjectName)
-                .NotEmpty().WithMessage("اسم المادة مطلوب.")
-                .NotEqual(SingleYearFixedTotalConstants.IslamicEducationSubject)
-                .WithMessage("مادة التربية الإسلامية لا تدخل ضمن قائمة المواد المحتسبة — الرجاء إدخال درجتها في الحقل المخصص لها.");
+            var nameRule = subject.RuleFor(g => g.SubjectName)
+                .NotEmpty().WithMessage("اسم المادة مطلوب.");
+
+            if (excludedSubject != null)
+            {
+                nameRule.NotEqual(excludedSubject)
+                    .WithMessage("مادة التربية الإسلامية لا تدخل ضمن قائمة المواد المحتسبة — الرجاء إدخال درجتها في الحقل المخصص لها.");
+            }
 
             subject.RuleFor(g => g.Mark)
                 .InclusiveBetween(0, SingleYearFixedTotalConstants.MaxMarkPerSubject)
@@ -275,6 +301,12 @@ namespace StudentRegistry.Application.Validators
         {
             if (string.IsNullOrEmpty(cert)) return false;
             return cert.Contains("عمانية") || cert.Equals("omani", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsYemeniCert(string cert)
+        {
+            if (string.IsNullOrEmpty(cert)) return false;
+            return cert.Contains("يمنية") || cert.Equals("yemeni", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool WeightsSumToOneHundred(KuwaitiDataCreateDto? data)

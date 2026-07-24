@@ -48,6 +48,9 @@ namespace StudentRegistry.Application.DTOs
 
         // Omani specific fields
         public OmaniDataCreateDto? OmaniData { get; set; }
+
+        // Yemeni specific fields
+        public YemeniDataCreateDto? YemeniData { get; set; }
     }
 
     public class KuwaitiDataCreateDto
@@ -86,7 +89,13 @@ namespace StudentRegistry.Application.DTOs
         public List<SingleYearSubjectMarkCreateDto>? Subjects { get; set; }
     }
 
-    // Shared by Qatari and Omani (both single-year, fixed-100-per-subject certificates).
+    public class YemeniDataCreateDto
+    {
+        // The 6 counted subjects — max mark is fixed server-side (§1.2), never client-supplied.
+        public List<SingleYearSubjectMarkCreateDto>? Subjects { get; set; }
+    }
+
+    // Shared by Qatari, Omani and Yemeni (all single-year, fixed-100-per-subject certificates).
     public class SingleYearSubjectMarkCreateDto
     {
         public string SubjectName { get; set; } = string.Empty;
@@ -149,6 +158,8 @@ namespace StudentRegistry.Application.DTOs
         public List<SingleYearSubjectMarkResponseDto>? QatariGrades { get; set; }
         public OmaniTotalsResponseDto? OmaniTotals { get; set; }
         public List<SingleYearSubjectMarkResponseDto>? OmaniGrades { get; set; }
+        public YemeniTotalsResponseDto? YemeniTotals { get; set; }
+        public List<SingleYearSubjectMarkResponseDto>? YemeniGrades { get; set; }
     }
 
     public class KuwaitiTotalsResponseDto
@@ -190,7 +201,14 @@ namespace StudentRegistry.Application.DTOs
         public string Disclaimer { get; set; } = string.Empty;
     }
 
-    // Shared by Qatari and Omani grade lists.
+    public class YemeniTotalsResponseDto
+    {
+        public decimal FinalTotal { get; set; }   // out of 600
+        public decimal Percentage { get; set; }
+        public string Disclaimer { get; set; } = string.Empty;
+    }
+
+    // Shared by Qatari, Omani and Yemeni grade lists.
     public class SingleYearSubjectMarkResponseDto
     {
         public string SubjectName { get; set; } = string.Empty;

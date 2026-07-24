@@ -22,7 +22,9 @@ namespace StudentRegistry.API.Controllers
                     { "bahraini", new { name = "شهادة بحرينية", tracks = new[] { "مسار العلوم والرياضيات", "مسار اللغات والعلوم الإنسانية", "مسار العلوم التجارية" } } },
                     { "kuwaiti", new { name = "شهادة كويتية", tracks = new[] { "القسم العلمي", "القسم الأدبي" } } },
                     // §1.6 — Omani has one track only; the dropdown offers a single fixed value.
-                    { "omani", new { name = "شهادة عمانية", tracks = new[] { OmaniConstants.SingleTrack } } }
+                    { "omani", new { name = "شهادة عمانية", tracks = new[] { OmaniConstants.SingleTrack } } },
+                    // §1.1 — Yemeni has one track only; the dropdown offers a single fixed value.
+                    { "yemeni", new { name = "شهادة يمنية", tracks = new[] { YemeniConstants.SingleTrack } } }
                 },
                 subjects = new Dictionary<string, string[]>
                 {
@@ -107,8 +109,8 @@ namespace StudentRegistry.API.Controllers
             {
                 scientific = QatariConstants.ScientificTrackSubjects,
                 max_mark_per_subject = SingleYearFixedTotalConstants.MaxMarkPerSubject,
-                total_max = SingleYearFixedTotalConstants.TotalMaxMark,
-                islamic_education_subject = SingleYearFixedTotalConstants.IslamicEducationSubject,
+                total_max = QatariConstants.ScientificTrackSubjects.Length * SingleYearFixedTotalConstants.MaxMarkPerSubject,
+                excluded_subject = SingleYearFixedTotalConstants.IslamicEducationSubject,
                 scientific_track_name = QatariConstants.ScientificTrack
             };
 
@@ -122,11 +124,25 @@ namespace StudentRegistry.API.Controllers
             {
                 subjects = OmaniConstants.Subjects,
                 max_mark_per_subject = SingleYearFixedTotalConstants.MaxMarkPerSubject,
-                total_max = SingleYearFixedTotalConstants.TotalMaxMark,
-                islamic_education_subject = SingleYearFixedTotalConstants.IslamicEducationSubject
+                total_max = OmaniConstants.Subjects.Length * SingleYearFixedTotalConstants.MaxMarkPerSubject,
+                excluded_subject = SingleYearFixedTotalConstants.IslamicEducationSubject
             };
 
             return Ok(omaniConfig);
+        }
+
+        [HttpGet("subjects-yemeni")]
+        public IActionResult GetYemeniSubjectsConfig()
+        {
+            var yemeniConfig = new
+            {
+                subjects = YemeniConstants.Subjects,
+                max_mark_per_subject = SingleYearFixedTotalConstants.MaxMarkPerSubject,
+                total_max = YemeniConstants.Subjects.Length * SingleYearFixedTotalConstants.MaxMarkPerSubject,
+                excluded_subject = (string?)null
+            };
+
+            return Ok(yemeniConfig);
         }
     }
 }

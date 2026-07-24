@@ -81,6 +81,10 @@ namespace StudentRegistry.Application.Services
             {
                 ProcessOmaniCertificate(createDto, student);
             }
+            else if (cert.Contains("يمنية") || cert.Equals("yemeni", StringComparison.OrdinalIgnoreCase))
+            {
+                ProcessYemeniCertificate(createDto, student);
+            }
             else
             {
                 ProcessStandardCertificate(createDto, student);
@@ -400,10 +404,32 @@ namespace StudentRegistry.Application.Services
             };
         }
 
-        // Shared by Qatari and Omani: single grade level, 7 subjects fixed at 100 each, fixed
-        // denominator 700, no weights. §1.4 — finalTotal/percentage recomputed entirely from raw
-        // marks against the certificate's fixed subject list; the client-sent percentage is never
-        // trusted, and the denominator is never derived from the submitted rows.
+        private void ProcessYemeniCertificate(StudentCreateDto dto, Student student)
+        {
+            var ye = dto.YemeniData;
+            if (ye == null)
+                throw new ArgumentException("بيانات الشهادة اليمنية مفقودة.");
+
+            var (finalTotal, percentage) = ProcessSingleYearFixedTotalCertificate(
+                ye.Subjects, YemeniConstants.Subjects, student,
+                "بيانات المواد والدرجات للشهادة اليمنية مفقودة.");
+
+            // TODO: the source rules for Yemeni do not specify an Egyptian equivalent total (unlike
+            // Kuwaiti's percentage × 4.10) — do not apply that conversion here until confirmed.
+
+            student.YemeniTotals = new YemeniStudentTotals
+            {
+                Student = student,
+                FinalTotal = Math.Round(finalTotal, 2),
+                Percentage = Math.Round(percentage, 2)
+            };
+        }
+
+        // Shared by Qatari, Omani and Yemeni: single grade level, every subject fixed at 100 each,
+        // no weights. §1.4 — finalTotal/percentage recomputed entirely from raw marks against the
+        // certificate's fixed subject list; the client-sent percentage is never trusted. The
+        // denominator is derived from the certificate's own subject count (never from the submitted
+        // rows) so it varies per cert — 700 for Qatari/Omani's 7 subjects, 600 for Yemeni's 6.
         private (decimal finalTotal, decimal percentage) ProcessSingleYearFixedTotalCertificate(
             List<SingleYearSubjectMarkCreateDto>? subjects, string[] subjectList, Student student, string missingDataMessage)
         {
@@ -414,7 +440,7 @@ namespace StudentRegistry.Application.Services
             foreach (var subject in subjects)
             {
                 // Defence in depth: the validator already enforces an exact match against the
-                // certificate's subject list and rejects التربية الإسلامية.
+                // certificate's subject list (and rejects any excluded subject, where applicable).
                 if (!subjectList.Contains(subject.SubjectName))
                     continue;
 
@@ -433,7 +459,8 @@ namespace StudentRegistry.Application.Services
                 });
             }
 
-            decimal percentage = (finalTotal / SingleYearFixedTotalConstants.TotalMaxMark) * 100;
+            decimal totalMaxMark = subjectList.Length * SingleYearFixedTotalConstants.MaxMarkPerSubject;
+            decimal percentage = (finalTotal / totalMaxMark) * 100;
             return (finalTotal, percentage);
         }
 

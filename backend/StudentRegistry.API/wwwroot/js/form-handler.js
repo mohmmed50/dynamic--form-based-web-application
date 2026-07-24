@@ -9,6 +9,7 @@ function initFormHandlers() {
   setupKuwaitiCalculatorListeners();
   setupQatariCalculatorListeners();
   setupOmaniCalculatorListeners();
+  setupYemeniCalculatorListeners();
   setupSubmissionHandler();
 }
 
@@ -1042,20 +1043,53 @@ function recalculateKuwaiti() {
   updateProgressIndicator();
 }
 
-// 3d. Single-year fixed-total Calculator (shared by Qatari and Omani — mirrors StudentService's
-// shared ProcessSingleYearFixedTotalCertificate exactly). Single grade level, max mark fixed at
-// 100 per subject, fixed denominator 700 never derived from the submitted rows. التربية الإسلامية
-// is collected separately as a documentation-only mark and never enters the calculation.
-const SINGLE_YEAR_TOTAL_MAX = 700;
+// 3d. Single-year fixed-total Calculator (shared by Qatari, Omani and Yemeni — mirrors
+// StudentService's shared ProcessSingleYearFixedTotalCertificate exactly). Single grade level, max
+// mark fixed at 100 per subject. The subject list, denominator and excluded subject (if any) are
+// all read from that certificate's /api/config/subjects-* response — never hardcoded here — so a
+// cert with a different subject count (Yemeni: 6 subjects / 600) or no excluded subject (Yemeni has
+// none) is handled by the exact same functions as Qatari/Omani.
+function getSingleYearConfig(prefix) {
+  if (prefix === 'qatari') {
+    if (!qatariConfig) return null;
+    return {
+      subjects: qatariConfig.scientific,
+      max_mark_per_subject: qatariConfig.max_mark_per_subject,
+      total_max: qatariConfig.total_max,
+      excluded_subject: qatariConfig.excluded_subject
+    };
+  }
+  if (prefix === 'omani') {
+    if (!omaniConfig) return null;
+    return {
+      subjects: omaniConfig.subjects,
+      max_mark_per_subject: omaniConfig.max_mark_per_subject,
+      total_max: omaniConfig.total_max,
+      excluded_subject: omaniConfig.excluded_subject
+    };
+  }
+  if (prefix === 'yemeni') {
+    if (!yemeniConfig) return null;
+    return {
+      subjects: yemeniConfig.subjects,
+      max_mark_per_subject: yemeniConfig.max_mark_per_subject,
+      total_max: yemeniConfig.total_max,
+      excluded_subject: yemeniConfig.excluded_subject
+    };
+  }
+  return null;
+}
 
-// Builds the flat subject-mark table for a given prefix ('qatari' or 'omani') into
+// Builds the flat subject-mark table for a given prefix ('qatari', 'omani' or 'yemeni') into
 // `${prefix}-subjects-body`, wiring live recalculation.
-function generateSingleYearFixedTotalGradesUI(prefix, subjectsList, maxMark) {
+function generateSingleYearFixedTotalGradesUI(prefix) {
   const tbody = document.getElementById(prefix + '-subjects-body');
-  if (!tbody) return;
+  const config = getSingleYearConfig(prefix);
+  if (!tbody || !config) return;
 
+  const maxMark = config.max_mark_per_subject;
   tbody.innerHTML = '';
-  (subjectsList || []).forEach((subjectName, index) => {
+  (config.subjects || []).forEach((subjectName, index) => {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td class="col-num">${index + 1}</td>
@@ -1078,7 +1112,7 @@ function generateSingleYearFixedTotalGradesUI(prefix, subjectsList, maxMark) {
 }
 
 function setupSingleYearFixedTotalListeners(prefix) {
-  [prefix + '-islamic-education-mark', prefix + '-printed-total', prefix + '-printed-percentage'].forEach(id => {
+  [prefix + '-printed-total', prefix + '-printed-percentage'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('input', () => recalculateSingleYearFixedTotal(prefix));
@@ -1089,18 +1123,20 @@ function setupSingleYearFixedTotalListeners(prefix) {
 
 function recalculateSingleYearFixedTotal(prefix) {
   const tbody = document.getElementById(prefix + '-subjects-body');
-  if (!tbody) return;
+  const config = getSingleYearConfig(prefix);
+  if (!tbody || !config) return;
 
   let finalTotal = 0;
   tbody.querySelectorAll('.' + prefix + '-mark-input').forEach(input => {
     finalTotal += parseFloat(input.value) || 0;
   });
 
-  const percentage = (finalTotal / SINGLE_YEAR_TOTAL_MAX) * 100;
+  const totalMax = config.total_max;
+  const percentage = totalMax > 0 ? (finalTotal / totalMax) * 100 : 0;
 
   const totalEl = document.getElementById(prefix + '-final-total');
   const percentageEl = document.getElementById(prefix + '-percentage');
-  if (totalEl) totalEl.textContent = finalTotal.toFixed(2) + ' / 700';
+  if (totalEl) totalEl.textContent = finalTotal.toFixed(2) + ' / ' + totalMax;
   if (percentageEl) percentageEl.textContent = percentage.toFixed(2) + '%';
 
   const printedTotalInput = document.getElementById(prefix + '-printed-total');
@@ -1112,9 +1148,18 @@ function recalculateSingleYearFixedTotal(prefix) {
     if (!isNaN(printedTotal) && !isNaN(printedPercentage)) {
       const totalDiff = printedTotal - finalTotal;
       const percentageDiff = printedPercentage - percentage;
-      noteEl.textContent = `المجموع المطبوع على الشهادة (${printedTotal}) يشمل مادة التربية الإسلامية. ` +
-        `الفرق عن المجموع المحتسب هنا هو ${totalDiff.toFixed(2)} درجة (${percentageDiff.toFixed(2)}%) ` +
-        `بسبب استبعاد هذه المادة من حساب المعادلة.`;
+      if (Math.abs(totalDiff) <= 0.01 && Math.abs(percentageDiff) <= 0.01) {
+        noteEl.textContent = '';
+      } else if (config.excluded_subject) {
+        // e.g. Qatari/Omani — a gap is expected because the excluded subject is on the certificate.
+        noteEl.textContent = `المجموع المطبوع على الشهادة (${printedTotal}) يشمل مادة ${config.excluded_subject}. ` +
+          `الفرق عن المجموع المحتسب هنا هو ${totalDiff.toFixed(2)} درجة (${percentageDiff.toFixed(2)}%) ` +
+          `بسبب استبعاد هذه المادة من حساب المعادلة.`;
+      } else {
+        // e.g. Yemeni — nothing is excluded, so a mismatch likely means a data-entry mistake.
+        noteEl.textContent = `تنبيه: المجموع المطبوع على الشهادة (${printedTotal}) يختلف عن المجموع المحتسب هنا ` +
+          `بمقدار ${totalDiff.toFixed(2)} درجة (${percentageDiff.toFixed(2)}%) — يرجى التأكد من صحة الدرجات المدخلة.`;
+      }
     } else {
       noteEl.textContent = '';
     }
@@ -1140,7 +1185,7 @@ function generateQatariGradesUI(trackVal) {
   blockedAlert.style.display = 'none';
   gradeBlock.style.display = 'block';
 
-  generateSingleYearFixedTotalGradesUI('qatari', qatariConfig.scientific, qatariConfig.max_mark_per_subject);
+  generateSingleYearFixedTotalGradesUI('qatari');
 }
 
 function setupQatariCalculatorListeners() {
@@ -1150,11 +1195,21 @@ function setupQatariCalculatorListeners() {
 // Omani-specific: single track, always rendered.
 function generateOmaniGradesUI() {
   if (!omaniConfig) return;
-  generateSingleYearFixedTotalGradesUI('omani', omaniConfig.subjects, omaniConfig.max_mark_per_subject);
+  generateSingleYearFixedTotalGradesUI('omani');
 }
 
 function setupOmaniCalculatorListeners() {
   setupSingleYearFixedTotalListeners('omani');
+}
+
+// Yemeni-specific: single track, always rendered, no excluded subject.
+function generateYemeniGradesUI() {
+  if (!yemeniConfig) return;
+  generateSingleYearFixedTotalGradesUI('yemeni');
+}
+
+function setupYemeniCalculatorListeners() {
+  setupSingleYearFixedTotalListeners('yemeni');
 }
 
 // 4. Form Submission and Validation
@@ -1191,8 +1246,8 @@ function setupSubmissionHandler() {
 }
 
 // Full Form Fields Validation
-// Shared by Qatari and Omani: validates the flat 7-subject mark table + optional Islamic
-// education mark for a given prefix.
+// Shared by Qatari, Omani and Yemeni: validates the flat subject-mark table + optional printed
+// total/percentage documentation fields for a given prefix.
 function validateSingleYearFixedTotalMarks(prefix, missingTableMessage, fallbackElement) {
   const markInputs = document.querySelectorAll('.' + prefix + '-mark-input');
   if (markInputs.length === 0) {
@@ -1214,12 +1269,24 @@ function validateSingleYearFixedTotalMarks(prefix, missingTableMessage, fallback
     }
   }
 
-  const islamicInput = document.getElementById(prefix + '-islamic-education-mark');
-  if (islamicInput && islamicInput.value !== '' && (isNaN(parseFloat(islamicInput.value)) || parseFloat(islamicInput.value) < 0 || parseFloat(islamicInput.value) > 100)) {
+  const config = getSingleYearConfig(prefix);
+  const totalMax = config ? config.total_max : 100 * markInputs.length;
+
+  const printedTotalInput = document.getElementById(prefix + '-printed-total');
+  if (printedTotalInput && printedTotalInput.value !== '' && (isNaN(parseFloat(printedTotalInput.value)) || parseFloat(printedTotalInput.value) < 0 || parseFloat(printedTotalInput.value) > totalMax)) {
     return {
       valid: false,
-      message: 'درجة التربية الإسلامية يجب أن تكون بين 0 و100.',
-      element: islamicInput
+      message: `المجموع المطبوع على الشهادة يجب أن يكون بين 0 و${totalMax}.`,
+      element: printedTotalInput
+    };
+  }
+
+  const printedPercentageInput = document.getElementById(prefix + '-printed-percentage');
+  if (printedPercentageInput && printedPercentageInput.value !== '' && (isNaN(parseFloat(printedPercentageInput.value)) || parseFloat(printedPercentageInput.value) < 0 || parseFloat(printedPercentageInput.value) > 100)) {
+    return {
+      valid: false,
+      message: 'النسبة المطبوعة على الشهادة يجب أن تكون بين 0 و100.',
+      element: printedPercentageInput
     };
   }
 
@@ -1468,6 +1535,11 @@ function validateForm() {
     return validateSingleYearFixedTotalMarks('omani', 'الرجاء توليد جدول مواد الشهادة العمانية أولاً.', trackSelect);
   }
 
+  // Check if Yemeni Cert is active
+  if (certSelect.value === 'yemeni') {
+    return validateSingleYearFixedTotalMarks('yemeni', 'الرجاء توليد جدول مواد الشهادة اليمنية أولاً.', trackSelect);
+  }
+
   // Check if Saudi Cert is active
   if (certSelect.value === 'saudi') {
     const yearSelect = document.getElementById('year-select');
@@ -1572,8 +1644,8 @@ function validateForm() {
 }
 
 // Compile Form Inputs into JSON Object
-// Shared by Qatari and Omani: reads the flat subject-mark table + optional documentation fields
-// for a given prefix into the shape both StudentCreateDto.QatariData/OmaniData expect.
+// Shared by Qatari, Omani and Yemeni: reads the flat subject-mark table + optional documentation
+// fields for a given prefix into the shape StudentCreateDto.QatariData/OmaniData/YemeniData expect.
 function collectSingleYearFixedTotalPayload(prefix) {
   const subjects = [];
   document.querySelectorAll('.' + prefix + '-mark-input').forEach(input => {
@@ -1583,11 +1655,9 @@ function collectSingleYearFixedTotalPayload(prefix) {
     });
   });
 
-  const islamicInput = document.getElementById(prefix + '-islamic-education-mark');
   const printedTotalInput = document.getElementById(prefix + '-printed-total');
   const printedPercentageInput = document.getElementById(prefix + '-printed-percentage');
 
-  const islamicEducationMark = islamicInput && islamicInput.value !== '' ? parseFloat(islamicInput.value) : null;
   const printedTotal = printedTotalInput && printedTotalInput.value !== '' ? parseFloat(printedTotalInput.value) : null;
   const printedPercentage = printedPercentageInput && printedPercentageInput.value !== '' ? parseFloat(printedPercentageInput.value) : null;
 
@@ -1597,7 +1667,6 @@ function collectSingleYearFixedTotalPayload(prefix) {
   return {
     data: {
       subjects: subjects,
-      islamicEducationMark: islamicEducationMark,
       printedTotal: printedTotal,
       printedPercentage: printedPercentage
     },
@@ -1654,6 +1723,22 @@ function compilePayload() {
       yearOfStudy: '',
       photo: uploadedPhotoBase64,
       omaniData: collected.data,
+      finalTotal: collected.finalTotal,
+      percentage: collected.percentage,
+      submittedAt: new Date().toISOString()
+    };
+  }
+
+  if (certSelect.value === 'yemeni') {
+    const collected = collectSingleYearFixedTotalPayload('yemeni');
+    return {
+      ...personalInfo,
+      nationalId: document.getElementById('national-id').value.trim(),
+      certification: certSelect.options[certSelect.selectedIndex].text,
+      track: trackVal,
+      yearOfStudy: '',
+      photo: uploadedPhotoBase64,
+      yemeniData: collected.data,
       finalTotal: collected.finalTotal,
       percentage: collected.percentage,
       submittedAt: new Date().toISOString()
@@ -1969,17 +2054,15 @@ function sendData(payload, submitBtn, originalText) {
     };
   } else if (payload.qatariData) {
     apiPayload.qatariData = {
-      subjects: payload.qatariData.subjects,
-      islamicEducationMark: payload.qatariData.islamicEducationMark,
-      printedTotal: payload.qatariData.printedTotal,
-      printedPercentage: payload.qatariData.printedPercentage
+      subjects: payload.qatariData.subjects
     };
   } else if (payload.omaniData) {
     apiPayload.omaniData = {
-      subjects: payload.omaniData.subjects,
-      islamicEducationMark: payload.omaniData.islamicEducationMark,
-      printedTotal: payload.omaniData.printedTotal,
-      printedPercentage: payload.omaniData.printedPercentage
+      subjects: payload.omaniData.subjects
+    };
+  } else if (payload.yemeniData) {
+    apiPayload.yemeniData = {
+      subjects: payload.yemeniData.subjects
     };
   } else {
     apiPayload.yearOfStudy = payload.yearOfStudy;
@@ -2101,6 +2184,17 @@ function showSuccessScreen(payload, mode, serverPath = '') {
       yearRow.style.display = 'flex';
       if (yearLabel) yearLabel.textContent = 'المجموع (من 700):';
       document.getElementById('receipt-year').textContent = (payload.finalTotal || 0).toFixed(2) + ' / 700';
+    }
+    if (saudiGpaRow && saudiGpaVal) {
+      saudiGpaRow.style.display = 'flex';
+      saudiGpaVal.textContent = (payload.percentage || 0).toFixed(2) + '%';
+    }
+  } else if (payload.yemeniData) {
+    if (programRow) programRow.style.display = 'none';
+    if (yearRow) {
+      yearRow.style.display = 'flex';
+      if (yearLabel) yearLabel.textContent = 'المجموع (من 600):';
+      document.getElementById('receipt-year').textContent = (payload.finalTotal || 0).toFixed(2) + ' / 600';
     }
     if (saudiGpaRow && saudiGpaVal) {
       saudiGpaRow.style.display = 'flex';
@@ -2238,15 +2332,6 @@ function downloadReceiptFile(payload, format) {
       csvRows.push(`المسار الأكاديمي,"${payload.track}"`);
       csvRows.push(`المجموع (من 700),${(payload.finalTotal || 0)}`);
       csvRows.push(`النسبة المئوية,${(payload.percentage || 0)}%`);
-      if (qa.islamicEducationMark !== null && qa.islamicEducationMark !== undefined) {
-        csvRows.push(`درجة التربية الإسلامية (غير محتسبة),${qa.islamicEducationMark}`);
-      }
-      if (qa.printedTotal !== null && qa.printedTotal !== undefined) {
-        csvRows.push(`المجموع المطبوع على الشهادة (من 800),${qa.printedTotal}`);
-      }
-      if (qa.printedPercentage !== null && qa.printedPercentage !== undefined) {
-        csvRows.push(`النسبة المطبوعة على الشهادة,${qa.printedPercentage}%`);
-      }
       csvRows.push(`تاريخ الإرسال,${payload.submittedAt}`);
       csvRows.push('');
       csvRows.push('المادة,الدرجة');
@@ -2258,19 +2343,21 @@ function downloadReceiptFile(payload, format) {
       csvRows.push(`المسار الأكاديمي,"${payload.track}"`);
       csvRows.push(`المجموع (من 700),${(payload.finalTotal || 0)}`);
       csvRows.push(`النسبة المئوية,${(payload.percentage || 0)}%`);
-      if (om.islamicEducationMark !== null && om.islamicEducationMark !== undefined) {
-        csvRows.push(`درجة التربية الإسلامية (غير محتسبة),${om.islamicEducationMark}`);
-      }
-      if (om.printedTotal !== null && om.printedTotal !== undefined) {
-        csvRows.push(`المجموع المطبوع على الشهادة,${om.printedTotal}`);
-      }
-      if (om.printedPercentage !== null && om.printedPercentage !== undefined) {
-        csvRows.push(`النسبة المطبوعة على الشهادة,${om.printedPercentage}%`);
-      }
       csvRows.push(`تاريخ الإرسال,${payload.submittedAt}`);
       csvRows.push('');
       csvRows.push('المادة,الدرجة');
       om.subjects.forEach(s => {
+        csvRows.push(`"${s.subjectName}",${s.mark}`);
+      });
+    } else if (payload.yemeniData) {
+      const ye = payload.yemeniData;
+      csvRows.push(`المسار الأكاديمي,"${payload.track}"`);
+      csvRows.push(`المجموع (من 600),${(payload.finalTotal || 0)}`);
+      csvRows.push(`النسبة المئوية,${(payload.percentage || 0)}%`);
+      csvRows.push(`تاريخ الإرسال,${payload.submittedAt}`);
+      csvRows.push('');
+      csvRows.push('المادة,الدرجة');
+      ye.subjects.forEach(s => {
         csvRows.push(`"${s.subjectName}",${s.mark}`);
       });
     } else {

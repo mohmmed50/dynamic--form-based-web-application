@@ -7,10 +7,11 @@ namespace StudentRegistry.Application.Constants
     public static class SingleYearFixedTotalConstants
     {
         public const decimal MaxMarkPerSubject = 100m;
-        public const decimal TotalMaxMark = 700m; // constant denominator — never derived from submitted rows
 
-        // Permanently excluded from both numerator and denominator, collected separately as a
-        // documentation-only field.
+        // Permanently excluded from both numerator and denominator for certs that carve it out
+        // (Qatari, Omani), collected separately as a documentation-only field. Not every cert in
+        // this family has an excluded subject — Yemeni has none, so callers must treat this as
+        // optional rather than universally applied.
         public const string IslamicEducationSubject = "التربية الإسلامية";
     }
 }

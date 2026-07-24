@@ -27,6 +27,7 @@ namespace StudentRegistry.Repository.Implementations
                 .Include(s => s.KuwaitiTotals)
                 .Include(s => s.QatariTotals)
                 .Include(s => s.OmaniTotals)
+                .Include(s => s.YemeniTotals)
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
 
@@ -41,6 +42,7 @@ namespace StudentRegistry.Repository.Implementations
                 .Include(s => s.KuwaitiTotals)
                 .Include(s => s.QatariTotals)
                 .Include(s => s.OmaniTotals)
+                .Include(s => s.YemeniTotals)
                 .FirstOrDefaultAsync(s => s.NationalId == nationalId);
         }
 
