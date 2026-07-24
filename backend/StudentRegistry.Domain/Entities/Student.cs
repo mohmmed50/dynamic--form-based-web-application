@@ -35,5 +35,6 @@ namespace StudentRegistry.Domain.Entities
         public virtual QatariStudentTotals? QatariTotals { get; set; }
         public virtual OmaniStudentTotals? OmaniTotals { get; set; }
         public virtual YemeniStudentTotals? YemeniTotals { get; set; }
+        public virtual BahrainiStudentTotals? BahrainiTotals { get; set; }
     }
 }

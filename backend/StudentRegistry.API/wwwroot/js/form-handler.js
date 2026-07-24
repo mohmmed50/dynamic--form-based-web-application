@@ -10,6 +10,7 @@ function initFormHandlers() {
   setupQatariCalculatorListeners();
   setupOmaniCalculatorListeners();
   setupYemeniCalculatorListeners();
+  setupBahrainiCalculatorListeners();
   setupSubmissionHandler();
 }
 
@@ -1049,7 +1050,26 @@ function recalculateKuwaiti() {
 // all read from that certificate's /api/config/subjects-* response — never hardcoded here — so a
 // cert with a different subject count (Yemeni: 6 subjects / 600) or no excluded subject (Yemeni has
 // none) is handled by the exact same functions as Qatari/Omani.
+// Bahraini's subject list depends on the selected track (علمي/أدبي) — set by generateBahrainiGradesUI
+// before getSingleYearConfig('bahraini') is consulted by the shared single-year-fixed-total functions.
+let bahrainiSelectedTrack = '';
+
 function getSingleYearConfig(prefix) {
+  if (prefix === 'bahraini') {
+    if (!bahrainiConfig) return null;
+    let subjects = [];
+    if (bahrainiSelectedTrack === bahrainiConfig.scientific_track_name) {
+      subjects = bahrainiConfig.scientific;
+    } else if (bahrainiSelectedTrack === bahrainiConfig.literary_track_name) {
+      subjects = bahrainiConfig.literary;
+    }
+    return {
+      subjects: subjects,
+      max_mark_per_subject: bahrainiConfig.max_mark_per_subject,
+      total_max: subjects.length * bahrainiConfig.max_mark_per_subject,
+      excluded_subject: null
+    };
+  }
   if (prefix === 'qatari') {
     if (!qatariConfig) return null;
     return {
@@ -1139,6 +1159,14 @@ function recalculateSingleYearFixedTotal(prefix) {
   if (totalEl) totalEl.textContent = finalTotal.toFixed(2) + ' / ' + totalMax;
   if (percentageEl) percentageEl.textContent = percentage.toFixed(2) + '%';
 
+  // Only Bahraini renders an equivalent-total element (Qatari/Omani/Yemeni don't have a confirmed
+  // Egyptian-equivalent formula yet — see the TODOs in StudentService).
+  const equivalentEl = document.getElementById(prefix + '-equivalent-total');
+  if (equivalentEl) {
+    const equivalentTotal = (percentage / 100) * 410;
+    equivalentEl.textContent = equivalentTotal.toFixed(2) + ' / 410';
+  }
+
   const printedTotalInput = document.getElementById(prefix + '-printed-total');
   const printedPercentageInput = document.getElementById(prefix + '-printed-percentage');
   const noteEl = document.getElementById(prefix + '-comparison-note');
@@ -1210,6 +1238,82 @@ function generateYemeniGradesUI() {
 
 function setupYemeniCalculatorListeners() {
   setupSingleYearFixedTotalListeners('yemeni');
+}
+
+// Bahraini-specific: track-dependent subject list. المسار العلمي is grouped by semester (الفصل
+// 3/4/5/6 — 30 subject rows total, real course-code data with intentional duplicates); المسار
+// الأدبي uses the shared flat single-year renderer (8 unique subjects, no semester grouping data
+// published yet). مهني/فني has no defined subject list and is blocked, mirroring the Qatari pattern.
+function generateBahrainiGradesUI(trackVal) {
+  const blockedAlert = document.getElementById('bahraini-track-blocked-alert');
+  const gradeBlock = document.getElementById('bahraini-grade-block');
+  if (!blockedAlert || !gradeBlock || !bahrainiConfig) return;
+
+  bahrainiSelectedTrack = trackVal;
+  const isSupported = trackVal === bahrainiConfig.scientific_track_name || trackVal === bahrainiConfig.literary_track_name;
+
+  if (!isSupported) {
+    blockedAlert.style.display = 'flex';
+    gradeBlock.style.display = 'none';
+    return;
+  }
+
+  blockedAlert.style.display = 'none';
+  gradeBlock.style.display = 'block';
+
+  if (trackVal === bahrainiConfig.scientific_track_name && bahrainiConfig.scientific_semesters) {
+    generateBahrainiScientificGradesUI();
+  } else {
+    generateSingleYearFixedTotalGradesUI('bahraini');
+  }
+}
+
+// Renders المسار العلمي's subject table grouped by semester, with a bold separator row per
+// semester label. Rows still use the shared '.bahraini-mark-input' class + data-subject attribute,
+// so recalculateSingleYearFixedTotal / validateSingleYearFixedTotalMarks / collectSingleYearFixedTotalPayload
+// all keep working unchanged — they just read every '.bahraini-mark-input' regardless of grouping.
+function generateBahrainiScientificGradesUI() {
+  const tbody = document.getElementById('bahraini-subjects-body');
+  const semesters = bahrainiConfig.scientific_semesters;
+  const maxMark = bahrainiConfig.max_mark_per_subject;
+  if (!tbody || !semesters) return;
+
+  tbody.innerHTML = '';
+  let rowNum = 0;
+
+  Object.keys(semesters).forEach(semesterLabel => {
+    const headerRow = document.createElement('tr');
+    headerRow.className = 'grades-group-header';
+    headerRow.innerHTML = `<td colspan="4">${semesterLabel}</td>`;
+    tbody.appendChild(headerRow);
+
+    (semesters[semesterLabel] || []).forEach(course => {
+      rowNum += 1;
+      const subjectName = course.subjectName;
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="col-num">${rowNum}</td>
+        <td class="col-subject"><span class="course-code">${course.code}</span> ${subjectName}</td>
+        <td class="col-grade">
+          <input type="number" min="0" max="${maxMark}" step="any" required placeholder="0-${maxMark}"
+                 class="table-input bahraini-mark-input" data-subject="${subjectName}">
+        </td>
+        <td class="col-weight">${maxMark}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  });
+
+  tbody.querySelectorAll('.bahraini-mark-input').forEach(input => {
+    input.addEventListener('input', () => recalculateSingleYearFixedTotal('bahraini'));
+    input.addEventListener('change', () => recalculateSingleYearFixedTotal('bahraini'));
+  });
+
+  recalculateSingleYearFixedTotal('bahraini');
+}
+
+function setupBahrainiCalculatorListeners() {
+  setupSingleYearFixedTotalListeners('bahraini');
 }
 
 // 4. Form Submission and Validation
@@ -1540,6 +1644,21 @@ function validateForm() {
     return validateSingleYearFixedTotalMarks('yemeni', 'الرجاء توليد جدول مواد الشهادة اليمنية أولاً.', trackSelect);
   }
 
+  // Check if Bahraini Cert is active
+  if (certSelect.value === 'bahraini') {
+    const isSupported = trackSelect.value === (bahrainiConfig ? bahrainiConfig.scientific_track_name : 'علمي')
+      || trackSelect.value === (bahrainiConfig ? bahrainiConfig.literary_track_name : 'أدبي');
+    if (!isSupported) {
+      return {
+        valid: false,
+        message: 'قائمة مواد هذا المسار غير معتمدة بعد في النظام — يرجى مراجعة مكتب تنسيق القبول بالجامعات والمعاهد المصرية.',
+        element: trackSelect
+      };
+    }
+
+    return validateSingleYearFixedTotalMarks('bahraini', 'الرجاء توليد جدول مواد الشهادة البحرينية أولاً.', trackSelect);
+  }
+
   // Check if Saudi Cert is active
   if (certSelect.value === 'saudi') {
     const yearSelect = document.getElementById('year-select');
@@ -1741,6 +1860,25 @@ function compilePayload() {
       yemeniData: collected.data,
       finalTotal: collected.finalTotal,
       percentage: collected.percentage,
+      submittedAt: new Date().toISOString()
+    };
+  }
+
+  if (certSelect.value === 'bahraini') {
+    const collected = collectSingleYearFixedTotalPayload('bahraini');
+    const config = getSingleYearConfig('bahraini');
+    return {
+      ...personalInfo,
+      nationalId: document.getElementById('national-id').value.trim(),
+      certification: certSelect.options[certSelect.selectedIndex].text,
+      track: trackVal,
+      yearOfStudy: '',
+      photo: uploadedPhotoBase64,
+      bahrainiData: collected.data,
+      finalTotal: collected.finalTotal,
+      totalMax: config ? config.total_max : 0,
+      percentage: collected.percentage,
+      equivalentTotal: (collected.percentage / 100) * 410,
       submittedAt: new Date().toISOString()
     };
   }
@@ -2064,6 +2202,10 @@ function sendData(payload, submitBtn, originalText) {
     apiPayload.yemeniData = {
       subjects: payload.yemeniData.subjects
     };
+  } else if (payload.bahrainiData) {
+    apiPayload.bahrainiData = {
+      subjects: payload.bahrainiData.subjects
+    };
   } else {
     apiPayload.yearOfStudy = payload.yearOfStudy;
     apiPayload.standardGrades = payload.grades.map(g => ({
@@ -2195,6 +2337,17 @@ function showSuccessScreen(payload, mode, serverPath = '') {
       yearRow.style.display = 'flex';
       if (yearLabel) yearLabel.textContent = 'المجموع (من 600):';
       document.getElementById('receipt-year').textContent = (payload.finalTotal || 0).toFixed(2) + ' / 600';
+    }
+    if (saudiGpaRow && saudiGpaVal) {
+      saudiGpaRow.style.display = 'flex';
+      saudiGpaVal.textContent = (payload.percentage || 0).toFixed(2) + '%';
+    }
+  } else if (payload.bahrainiData) {
+    if (programRow) programRow.style.display = 'none';
+    if (yearRow) {
+      yearRow.style.display = 'flex';
+      if (yearLabel) yearLabel.textContent = 'المجموع الاعتباري (من 410):';
+      document.getElementById('receipt-year').textContent = (payload.equivalentTotal || 0).toFixed(2) + ' / 410';
     }
     if (saudiGpaRow && saudiGpaVal) {
       saudiGpaRow.style.display = 'flex';

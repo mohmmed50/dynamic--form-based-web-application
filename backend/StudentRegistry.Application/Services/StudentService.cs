@@ -85,6 +85,10 @@ namespace StudentRegistry.Application.Services
             {
                 ProcessYemeniCertificate(createDto, student);
             }
+            else if (cert.Contains("بحرينية") || cert.Equals("bahraini", StringComparison.OrdinalIgnoreCase))
+            {
+                ProcessBahrainiCertificate(createDto, student);
+            }
             else
             {
                 ProcessStandardCertificate(createDto, student);
@@ -425,7 +429,39 @@ namespace StudentRegistry.Application.Services
             };
         }
 
-        // Shared by Qatari, Omani and Yemeni: single grade level, every subject fixed at 100 each,
+        // Egyptian-equivalency for the Bahraini certificate (last-two-years, track-dependent subject
+        // list). Reuses the shared single-year fixed-total math, then — unlike Qatari/Omani/Yemeni,
+        // whose Egyptian-equivalent total is not yet confirmed — scales the percentage to /410
+        // exactly like the Kuwaiti and IG formulas, per the source rules provided for this certificate.
+        private void ProcessBahrainiCertificate(StudentCreateDto dto, Student student)
+        {
+            var ba = dto.BahrainiData;
+            if (ba == null)
+                throw new ArgumentException("بيانات الشهادة البحرينية مفقودة.");
+
+            string[] subjectList = BahrainiConstants.GetTrackSubjects(dto.Track);
+            if (subjectList.Length == 0)
+                throw new ArgumentException(BahrainiConstants.VocationalTrackError);
+
+            var (finalTotal, percentage) = ProcessSingleYearFixedTotalCertificate(
+                ba.Subjects, subjectList, student,
+                "بيانات المواد والدرجات للشهادة البحرينية مفقودة.");
+
+            decimal totalMax = subjectList.Length * SingleYearFixedTotalConstants.MaxMarkPerSubject;
+            decimal equivalentTotal = (percentage / 100m) * EquivalencyConstants.EgyptianScientificTrackTotal;
+
+            student.BahrainiTotals = new BahrainiStudentTotals
+            {
+                Student = student,
+                Track = dto.Track,
+                FinalTotal = Math.Round(finalTotal, 2),
+                TotalMax = totalMax,
+                Percentage = Math.Round(percentage, 2),
+                EquivalentTotal = Math.Round(equivalentTotal, 2)
+            };
+        }
+
+        // Shared by Qatari, Omani, Yemeni and Bahraini: single grade level, every subject fixed at 100 each,
         // no weights. §1.4 — finalTotal/percentage recomputed entirely from raw marks against the
         // certificate's fixed subject list; the client-sent percentage is never trusted. The
         // denominator is derived from the certificate's own subject count (never from the submitted

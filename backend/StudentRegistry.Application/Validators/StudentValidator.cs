@@ -124,7 +124,7 @@ namespace StudentRegistry.Application.Validators
                 });
             });
 
-            When(x => !IsSaudiCert(x.Certification) && !IsIgCert(x.Certification) && !IsKuwaitiCert(x.Certification) && !IsQatariCert(x.Certification) && !IsOmaniCert(x.Certification) && !IsYemeniCert(x.Certification), () =>
+            When(x => !IsSaudiCert(x.Certification) && !IsIgCert(x.Certification) && !IsKuwaitiCert(x.Certification) && !IsQatariCert(x.Certification) && !IsOmaniCert(x.Certification) && !IsYemeniCert(x.Certification) && !IsBahrainiCert(x.Certification), () =>
             {
                 RuleFor(x => x.YearOfStudy)
                     .NotEmpty().WithMessage("الرجاء اختيار السنة الدراسية.");
@@ -260,9 +260,55 @@ namespace StudentRegistry.Application.Validators
                         ValidateSingleYearSubjectRow(subject, excludedSubject: null));
                 });
             });
+
+            When(x => IsBahrainiCert(x.Certification), () =>
+            {
+                RuleFor(x => x.BahrainiData)
+                    .NotNull().WithMessage("بيانات الشهادة البحرينية مطلوبة.");
+
+                // مسار مهني/فني ليس له قائمة مواد معتمدة بعد — يُحظر بنفس أسلوب الشهادة القطرية.
+                RuleFor(x => x.Track)
+                    .Must(t => t == BahrainiConstants.ScientificTrack || t == BahrainiConstants.LiteraryTrack)
+                    .WithMessage(BahrainiConstants.VocationalTrackError);
+
+                When(x => x.BahrainiData != null && x.Track == BahrainiConstants.ScientificTrack, () =>
+                {
+                    // Multiset match (not the stricter Qatari/Omani/Yemeni set match): the real
+                    // per-semester course-code table has intentional duplicate subject names
+                    // (separate course codes for the same subject, e.g. ريض253/ريض261).
+                    RuleFor(x => x.BahrainiData!.Subjects)
+                        .Must(subjects => MatchesExactSingleYearSubjectMultiset(subjects, BahrainiConstants.ScientificTrackSubjects))
+                        .WithMessage("قائمة المواد يجب أن تطابق تماماً مواد المسار العلمي (30 مادة موزعة على الفصول 3-6)، بدون نقص أو زيادة.");
+
+                    RuleForEach(x => x.BahrainiData!.Subjects).ChildRules(subject =>
+                        ValidateSingleYearSubjectRow(subject, excludedSubject: null));
+                });
+
+                When(x => x.BahrainiData != null && x.Track == BahrainiConstants.LiteraryTrack, () =>
+                {
+                    RuleFor(x => x.BahrainiData!.Subjects)
+                        .Must(subjects => MatchesExactSingleYearSubjectSet(subjects, BahrainiConstants.LiteraryTrackSubjects))
+                        .WithMessage("قائمة المواد يجب أن تطابق تماماً مواد المسار الأدبي الثمانية، بدون نقص أو زيادة أو تكرار.");
+
+                    RuleForEach(x => x.BahrainiData!.Subjects).ChildRules(subject =>
+                        ValidateSingleYearSubjectRow(subject, excludedSubject: null));
+                });
+            });
         }
 
-        // Shared by Qatari, Omani and Yemeni (all single-year, fixed-100-per-subject certificates).
+        // Bahraini المسار العلمي only: same exact-count match as MatchesExactSingleYearSubjectSet but
+        // WITHOUT the no-duplicates rule, since its real subject list has intentional duplicates.
+        private bool MatchesExactSingleYearSubjectMultiset(
+            System.Collections.Generic.List<SingleYearSubjectMarkCreateDto>? subjects, string[] required)
+        {
+            if (subjects == null) return false;
+            var names = subjects.Select(s => s.SubjectName).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            var requiredSorted = required.OrderBy(n => n, StringComparer.Ordinal).ToList();
+            return names.SequenceEqual(requiredSorted);
+        }
+
+        // Shared by Qatari, Omani, Yemeni and Bahraini's المسار الأدبي (all single-year, fixed-100-per-subject
+        // certificates with no duplicate subject names).
         private bool MatchesExactSingleYearSubjectSet(
             System.Collections.Generic.List<SingleYearSubjectMarkCreateDto>? subjects, string[] required)
         {
@@ -307,6 +353,12 @@ namespace StudentRegistry.Application.Validators
         {
             if (string.IsNullOrEmpty(cert)) return false;
             return cert.Contains("يمنية") || cert.Equals("yemeni", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsBahrainiCert(string cert)
+        {
+            if (string.IsNullOrEmpty(cert)) return false;
+            return cert.Contains("بحرينية") || cert.Equals("bahraini", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool WeightsSumToOneHundred(KuwaitiDataCreateDto? data)
