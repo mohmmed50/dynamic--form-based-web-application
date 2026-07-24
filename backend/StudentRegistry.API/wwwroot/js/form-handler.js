@@ -139,36 +139,18 @@ function generateGradesTable(yearVal) {
 
     const blocks = typeof getSaudiBlocks === 'function' ? getSaudiBlocks(yearVal) : [];
 
-    // Auto-number duplicate subjects across all blocks combined to avoid user confusion
-    const occurrenceCounts = {};
-    blocks.forEach(block => {
-      block.subjects.forEach(s => {
-        occurrenceCounts[s.name] = (occurrenceCounts[s.name] || 0) + 1;
-      });
-    });
-
-    const currentOccurrence = {};
-
     blocks.forEach((block, blockIndex) => {
       const card = document.createElement('div');
       card.className = 'saudi-year-card';
       card.style.cssText = 'background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-md, 8px); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));';
 
       let tableRowsHtml = '';
-      block.subjects.forEach((subjectObj, subjectIndex) => {
+      block.subjects.forEach((subjectObj) => {
         const subjectName = subjectObj.name;
-        const coefficient = subjectObj.coefficient;
-
-        let displaySubjectName = subjectName;
-        if (occurrenceCounts[subjectName] > 1) {
-          currentOccurrence[subjectName] = (currentOccurrence[subjectName] || 0) + 1;
-          displaySubjectName = `${subjectName} (${currentOccurrence[subjectName]})`;
-        }
-
         tableRowsHtml += `
           <tr>
-            <td class="col-num">${subjectIndex + 1}</td>
-            <td class="col-subject">${displaySubjectName}</td>
+            <td class="col-num"></td>
+            <td class="col-subject"></td>
             <td class="col-grade">
               <input type="number" min="0" step="any" required
                      placeholder="المتحصلة" class="table-input saudi-achieved-input"
@@ -180,6 +162,7 @@ function generateGradesTable(yearVal) {
                      data-subject="${subjectName}">
             </td>
             <td class="col-achieved saudi-coefficient-cell">-</td>
+            <td class="col-action"><button type="button" class="saudi-row-delete-btn" title="حذف المادة">✕</button></td>
           </tr>
         `;
       });
@@ -198,12 +181,17 @@ function generateGradesTable(yearVal) {
                 <th class="col-grade">الدرجة المتحصلة</th>
                 <th class="col-weight">الدرجة الموزونة</th>
                 <th class="col-achieved">المعامل</th>
+                <th class="col-action"></th>
               </tr>
             </thead>
             <tbody>
               ${tableRowsHtml}
             </tbody>
           </table>
+        </div>
+
+        <div class="saudi-add-subject-row">
+          <button type="button" class="saudi-add-subject-btn">إضافة مادة</button>
         </div>
 
         <!-- Year Subtotal Bar -->
@@ -216,6 +204,8 @@ function generateGradesTable(yearVal) {
         </div>
       `;
       saudiMultiContainer.appendChild(card);
+      renumberSaudiCardRows(card);
+      attachSaudiCardControls(card);
     });
 
   } else {
@@ -258,23 +248,17 @@ function generateGradesTable(yearVal) {
   setupTableCalculationListeners();
 }
 
-// 3. Real-time Calculation Handler
-function setupTableCalculationListeners() {
-  const tableBody = document.getElementById('grades-table-body');
-  if (!tableBody) return;
-
-  const isSaudi = (document.getElementById('cert-select').value === 'saudi');
-
-  if (isSaudi) {
-    const saudiMultiContainer = document.getElementById('saudi-multi-tables-container');
-    const cards = saudiMultiContainer.querySelectorAll('.saudi-year-card');
-
-    // Official Saudi formula: per row, Coefficient = Weighted / Achieved (must be a whole
-    // number — otherwise the row is flagged as an error and the final grade is blocked).
-    // Per block: yearPercentage = (Σ Weighted) / (Σ Coefficient), weighted by the block's
-    // position via getSaudiYearWeights(yearsCount). School total = Σ weighted year percentages.
-    // Final = (schoolTotal + درجة القدرات) / 2. Mirrors StudentService.ProcessSaudiCertificate.
-    const recalculateSaudi = () => {
+// Official Saudi formula: per row, Coefficient = Weighted / Achieved (must be a whole
+// number — otherwise the row is flagged as an error and the final grade is blocked).
+// Per block: yearPercentage = (Σ Weighted) / (Σ Coefficient), weighted by the block's
+// position via getSaudiYearWeights(yearsCount). School total = Σ weighted year percentages.
+// Final = (schoolTotal + درجة القدرات) / 2. Mirrors StudentService.ProcessSaudiCertificate.
+// Hoisted to module scope (not nested in setupTableCalculationListeners) so that dynamically
+// added/removed subject rows can call the exact same function reference without re-binding
+// duplicate listeners on every add/delete.
+function recalculateSaudi() {
+      const saudiMultiContainer = document.getElementById('saudi-multi-tables-container');
+      const cards = saudiMultiContainer ? saudiMultiContainer.querySelectorAll('.saudi-year-card') : [];
       const yearsCountVal = document.getElementById('year-select').value;
       const yearWeights = typeof getSaudiYearWeights === 'function' ? getSaudiYearWeights(yearsCountVal) : {};
 
@@ -397,14 +381,289 @@ function setupTableCalculationListeners() {
       }
 
       updateProgressIndicator();
+}
+
+// Attach live-recalculation listeners to a single row's achieved/weighted inputs. Reuses the
+// module-scope recalculateSaudi so repeated calls (e.g. after adding a row) never stack
+// duplicate listeners referencing different closures.
+function attachSaudiRowListeners(scope) {
+  const inputs = scope.querySelectorAll('.saudi-achieved-input, .saudi-weighted-input');
+  inputs.forEach(input => {
+    input.addEventListener('input', recalculateSaudi);
+    input.addEventListener('change', recalculateSaudi);
+  });
+}
+
+// 2b. Saudi subject management (add / delete) — each year card manages its own table
+// independently, per the "منح كل سنة دراسية جدول مستقل" requirement.
+
+// Subjects that are collected on the certificate but excluded from the Egyptian equivalency
+// (تنسيق) calculation. Mirrors StudentValidator's server-side denylist — keep both in sync.
+const SAUDI_DENIED_SUBJECTS_EXACT = [
+  'الفقه', 'القرآن الكريم والتفسير', 'الحديث', 'التوحيد',
+  'التربية الصحية والبدنية', 'اللياقة والثقافة الصحية'
+];
+// Note: 'رياضه'/'رياضيه' (sport, noun/adjective) deliberately do NOT match 'الرياضيات'
+// (Mathematics) after normalization — verify with any new keyword before adding it here.
+const SAUDI_DENIED_KEYWORDS = [
+  'قرآن', 'تفسير', 'حديث', 'توحيد', 'فقه', 'اسلام', 'اسلاميه', 'عقيده', 'شريعه', 'دينيه',
+  'رياضه', 'رياضيه', 'بدني', 'بدنيه', 'لياقه', 'دفاع عن النفس',
+  'اختياري', 'اختيار حر', 'ماده حره', 'نشاط حر'
+];
+
+// Normalizes Arabic text for comparison: trims/collapses whitespace, unifies alef/taa-marbuta/
+// yaa variants, strips diacritics and tatweel, lowercases (for any incidental Latin chars).
+function normalizeArabicSubject(text) {
+  if (!text) return '';
+  return text
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[أإآا]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[ًٌٍَُِّْـ]/g, '')
+    .toLowerCase();
+}
+
+function checkSaudiSubjectAllowed(rawName) {
+  const normalized = normalizeArabicSubject(rawName);
+  if (!normalized) return { allowed: false, reason: 'الرجاء إدخال اسم المادة.' };
+
+  const deniedExact = SAUDI_DENIED_SUBJECTS_EXACT.some(d => normalizeArabicSubject(d) === normalized);
+  if (deniedExact) {
+    return { allowed: false, reason: 'لا يمكن إضافة هذه المادة لأنها غير داخلة في حساب التنسيق المصري.' };
+  }
+
+  const deniedKeyword = SAUDI_DENIED_KEYWORDS.some(k => normalized.includes(k));
+  if (deniedKeyword) {
+    return { allowed: false, reason: 'لا يمكن إضافة هذه المادة لأنها غير داخلة في حساب التنسيق المصري.' };
+  }
+
+  return { allowed: true, reason: '' };
+}
+
+// Recomputes the "#" and displayed subject-name (with duplicate-occurrence suffixes) for a
+// single card's rows, without touching any already-entered achieved/weighted values.
+function renumberSaudiCardRows(card) {
+  const rows = card.querySelectorAll('tbody tr');
+  const occurrenceCounts = {};
+  rows.forEach(row => {
+    const subject = row.querySelector('.saudi-achieved-input').getAttribute('data-subject');
+    occurrenceCounts[subject] = (occurrenceCounts[subject] || 0) + 1;
+  });
+
+  const currentOccurrence = {};
+  rows.forEach((row, index) => {
+    row.querySelector('.col-num').textContent = index + 1;
+    const subject = row.querySelector('.saudi-achieved-input').getAttribute('data-subject');
+    let displayName = subject;
+    if (occurrenceCounts[subject] > 1) {
+      currentOccurrence[subject] = (currentOccurrence[subject] || 0) + 1;
+      displayName = `${subject} (${currentOccurrence[subject]})`;
+    }
+    row.querySelector('.col-subject').textContent = displayName;
+  });
+}
+
+function buildSaudiSubjectRow(subjectName) {
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td class="col-num"></td>
+    <td class="col-subject"></td>
+    <td class="col-grade">
+      <input type="number" min="0" step="any" required
+             placeholder="المتحصلة" class="table-input saudi-achieved-input"
+             data-subject="${subjectName}">
+    </td>
+    <td class="col-weight">
+      <input type="number" min="0" step="any" required
+             placeholder="الموزونة" class="table-input saudi-weighted-input"
+             data-subject="${subjectName}">
+    </td>
+    <td class="col-achieved saudi-coefficient-cell">-</td>
+    <td class="col-action"><button type="button" class="saudi-row-delete-btn" title="حذف المادة">✕</button></td>
+  `;
+  return row;
+}
+
+async function handleAddSaudiSubject(card) {
+  const inputId = 'saudi-add-subject-input';
+  const yearTitle = card.querySelector('.saudi-year-title') ? card.querySelector('.saudi-year-title').textContent.trim() : 'هذه السنة';
+
+  const step1 = await showAppModal({
+    title: `إضافة مادة جديدة — ${yearTitle}`,
+    bodyHtml: `
+      <div class="alert alert-danger">
+        تنبيه: يرجى عدم إضافة أي مادة غير داخلة في حساب التنسيق المصري، مثل: الفقه، القرآن الكريم والتفسير،
+        الحديث، التوحيد، التربية الصحية والبدنية، اللياقة والثقافة الصحية، أو أي مواد دينية أو تربية بدنية
+        أو مواد اختيار حر. يتم احتساب المواد الأكاديمية فقط وفقاً لقواعد التنسيق المصري.
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label for="${inputId}">اسم المادة</label>
+        <input type="text" id="${inputId}" class="form-control" placeholder="مثال: الأحياء" autocomplete="off">
+      </div>
+    `,
+    confirmText: 'التالي',
+    cancelText: 'إلغاء',
+    variant: 'warning',
+    focusInputId: inputId
+  });
+
+  if (!step1.confirmed) return;
+
+  const rawName = (step1.value || '').trim();
+  const check = checkSaudiSubjectAllowed(rawName);
+  if (!check.allowed) {
+    showToast(check.reason, 'danger');
+    return;
+  }
+
+  const step2 = await showAppModal({
+    title: 'تأكيد الإضافة',
+    bodyHtml: `<p>هل أنت متأكد من إضافة مادة "<strong>${rawName}</strong>" إلى ${yearTitle}؟</p>`,
+    confirmText: 'إضافة',
+    cancelText: 'تراجع',
+    variant: 'primary'
+  });
+
+  if (!step2.confirmed) return;
+
+  const row = buildSaudiSubjectRow(rawName);
+  card.querySelector('tbody').appendChild(row);
+  attachSaudiRowListeners(row);
+  row.querySelector('.saudi-row-delete-btn').addEventListener('click', () => {
+    handleDeleteSaudiSubject(card, row);
+  });
+  renumberSaudiCardRows(card);
+  recalculateSaudi();
+  showToast(`تمت إضافة مادة "${rawName}" بنجاح.`, 'success');
+}
+
+async function handleDeleteSaudiSubject(card, row) {
+  const subjectDisplay = row.querySelector('.col-subject').textContent.trim();
+  const yearTitle = card.querySelector('.saudi-year-title') ? card.querySelector('.saudi-year-title').textContent.trim() : 'هذه السنة';
+
+  const result = await showAppModal({
+    title: 'تأكيد الحذف',
+    bodyHtml: `<p>هل أنت متأكد من حذف مادة "<strong>${subjectDisplay}</strong>" من ${yearTitle}؟ لا يمكن التراجع عن هذا الإجراء.</p>`,
+    confirmText: 'حذف',
+    cancelText: 'تراجع',
+    variant: 'danger'
+  });
+
+  if (!result.confirmed) return;
+
+  row.remove();
+  renumberSaudiCardRows(card);
+  recalculateSaudi();
+  showToast(`تم حذف مادة "${subjectDisplay}".`, 'success');
+}
+
+// Wires the "+ إضافة مادة" button and every row's delete button for one card. Safe to call
+// repeatedly (buttons are freshly created per generateGradesTable() run, no stale handlers).
+function attachSaudiCardControls(card) {
+  const addBtn = card.querySelector('.saudi-add-subject-btn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => handleAddSaudiSubject(card));
+  }
+
+  card.querySelectorAll('.saudi-row-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('tr');
+      handleDeleteSaudiSubject(card, row);
+    });
+  });
+}
+
+// Generic promise-based confirmation/input modal (replaces alert()/confirm()).
+// variant: 'primary' | 'warning' | 'danger'. Pass focusInputId to collect a text value.
+function showAppModal({ title, bodyHtml, confirmText = 'تأكيد', cancelText = 'إلغاء', variant = 'primary', focusInputId = null }) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('app-modal-overlay');
+    const box = document.getElementById('app-modal-box');
+    const titleEl = document.getElementById('app-modal-title');
+    const bodyEl = document.getElementById('app-modal-body');
+    const confirmBtn = document.getElementById('app-modal-confirm');
+    const cancelBtn = document.getElementById('app-modal-cancel');
+    if (!overlay || !box || !titleEl || !bodyEl || !confirmBtn || !cancelBtn) {
+      resolve({ confirmed: false, value: null });
+      return;
+    }
+
+    titleEl.textContent = title;
+    bodyEl.innerHTML = bodyHtml;
+    confirmBtn.textContent = confirmText;
+    cancelBtn.textContent = cancelText;
+    box.className = 'app-modal-box app-modal-' + variant;
+
+    overlay.style.display = 'flex';
+
+    const cleanup = () => {
+      overlay.style.display = 'none';
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlayClick);
+      document.removeEventListener('keydown', onKeydown);
     };
 
+    const onConfirm = () => {
+      const inputEl = focusInputId ? document.getElementById(focusInputId) : null;
+      const value = inputEl ? inputEl.value : null;
+      cleanup();
+      resolve({ confirmed: true, value });
+    };
+    const onCancel = () => {
+      cleanup();
+      resolve({ confirmed: false, value: null });
+    };
+    const onOverlayClick = (e) => {
+      if (e.target === overlay) onCancel();
+    };
+    const onKeydown = (e) => {
+      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Enter' && focusInputId) onConfirm();
+    };
+
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlayClick);
+    document.addEventListener('keydown', onKeydown);
+
+    if (focusInputId) {
+      setTimeout(() => {
+        const el = document.getElementById(focusInputId);
+        if (el) el.focus();
+      }, 50);
+    }
+  });
+}
+
+function showToast(message, variant = 'success') {
+  const container = document.getElementById('app-toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = 'app-toast app-toast-' + variant;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('app-toast-hide');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// 3. Real-time Calculation Handler
+function setupTableCalculationListeners() {
+  const tableBody = document.getElementById('grades-table-body');
+  if (!tableBody) return;
+
+  const isSaudi = (document.getElementById('cert-select').value === 'saudi');
+
+  if (isSaudi) {
+    const saudiMultiContainer = document.getElementById('saudi-multi-tables-container');
+    const cards = saudiMultiContainer.querySelectorAll('.saudi-year-card');
+
     cards.forEach(card => {
-      const inputs = card.querySelectorAll('.saudi-achieved-input, .saudi-weighted-input');
-      inputs.forEach(input => {
-        input.addEventListener('input', recalculateSaudi);
-        input.addEventListener('change', recalculateSaudi);
-      });
+      attachSaudiRowListeners(card);
     });
 
     const aptitudeInput = document.getElementById('saudi-aptitude-score');

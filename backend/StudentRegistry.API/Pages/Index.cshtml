@@ -681,6 +681,21 @@
       <button class="btn btn-secondary" id="btn-new-form">تسجيل استمارة جديدة 🔄</button>
     </div>
   </div>
+
+  <!-- Generic confirmation / input modal (used by Saudi subject add/delete) -->
+  <div class="app-modal-overlay" id="app-modal-overlay">
+    <div class="app-modal-box" id="app-modal-box">
+      <h3 class="app-modal-title" id="app-modal-title"></h3>
+      <div class="app-modal-body" id="app-modal-body"></div>
+      <div class="app-modal-footer">
+        <button type="button" class="btn btn-secondary" id="app-modal-cancel" style="flex:1;">إلغاء</button>
+        <button type="button" class="btn btn-primary" id="app-modal-confirm" style="flex:1;">تأكيد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="app-toast-container" id="app-toast-container"></div>
 </div>
 
 @section Scripts {
