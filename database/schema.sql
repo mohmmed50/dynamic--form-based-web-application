@@ -15,6 +15,7 @@ USE [StudentRegistryDb];
 GO
 
 -- 2. Drop existing tables if they exist (in reverse order of foreign keys)
+IF OBJECT_ID('dbo.BahrainiStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.BahrainiStudentTotals;
 IF OBJECT_ID('dbo.YemeniStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.YemeniStudentTotals;
 IF OBJECT_ID('dbo.OmaniStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.OmaniStudentTotals;
 IF OBJECT_ID('dbo.QatariStudentTotals', 'U') IS NOT NULL DROP TABLE dbo.QatariStudentTotals;
@@ -203,6 +204,22 @@ CREATE TABLE dbo.YemeniStudentTotals (
     Percentage DECIMAL(5,2) NOT NULL,
     CONSTRAINT PK_YemeniStudentTotals PRIMARY KEY CLUSTERED (StudentId ASC),
     CONSTRAINT FK_YemeniStudentTotals_Students_StudentId FOREIGN KEY (StudentId)
+        REFERENCES dbo.Students (Id) ON DELETE CASCADE
+);
+GO
+
+-- 13. Create BahrainiStudentTotals Table (One-to-One with Students)
+-- Single grade level (last two years), track-dependent subject list — 7 subjects/700 (علمي) or
+-- 8 subjects/800 (أدبي). EquivalentTotal scales Percentage to /410, matching the Kuwaiti/IG formula.
+CREATE TABLE dbo.BahrainiStudentTotals (
+    StudentId INT NOT NULL,
+    Track NVARCHAR(50) NOT NULL,
+    FinalTotal DECIMAL(6,2) NOT NULL,
+    TotalMax DECIMAL(6,2) NOT NULL,         -- 700 or 800
+    Percentage DECIMAL(5,2) NOT NULL,
+    EquivalentTotal DECIMAL(6,2) NOT NULL,  -- out of 410
+    CONSTRAINT PK_BahrainiStudentTotals PRIMARY KEY CLUSTERED (StudentId ASC),
+    CONSTRAINT FK_BahrainiStudentTotals_Students_StudentId FOREIGN KEY (StudentId)
         REFERENCES dbo.Students (Id) ON DELETE CASCADE
 );
 GO

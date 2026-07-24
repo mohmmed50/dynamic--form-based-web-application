@@ -19,7 +19,7 @@ namespace StudentRegistry.API.Controllers
                     { "ig", new { name = "شهادات الـ IG (IGCSE/O-Level/A-Level)", tracks = new[] { "IGCSE (Early Years) - مواد عامة", "A-Levels (Advanced Years) - تخصص علمي أو أدبي", "AS-Levels (Intermediate Year) - انتقالى" } } },
                     { "saudi", new { name = "شهادة سعودية", tracks = new[] { "المسار العام", "مسار العلوم", "مسار الإدارة والأعمال", "مسار الهندسة والتكنولوجيا", "مسار العلوم الإنسانية" } } },
                     { "qatari", new { name = "شهادة قطرية", tracks = new[] { "المسار العلمي", "المسار الأدبي والإنسانيات", "مسار التكنولوجيا" } } },
-                    { "bahraini", new { name = "شهادة بحرينية", tracks = new[] { "مسار العلوم والرياضيات", "مسار اللغات والعلوم الإنسانية", "مسار العلوم التجارية" } } },
+                    { "bahraini", new { name = "شهادة بحرينية", tracks = new[] { BahrainiConstants.ScientificTrack, BahrainiConstants.LiteraryTrack, BahrainiConstants.VocationalTrack } } },
                     { "kuwaiti", new { name = "شهادة كويتية", tracks = new[] { "القسم العلمي", "القسم الأدبي" } } },
                     // §1.6 — Omani has one track only; the dropdown offers a single fixed value.
                     { "omani", new { name = "شهادة عمانية", tracks = new[] { OmaniConstants.SingleTrack } } },
@@ -143,6 +143,31 @@ namespace StudentRegistry.API.Controllers
             };
 
             return Ok(yemeniConfig);
+        }
+
+        [HttpGet("subjects-bahraini")]
+        public IActionResult GetBahrainiSubjectsConfig()
+        {
+            var bahrainiConfig = new
+            {
+                scientific = BahrainiConstants.ScientificTrackSubjects,
+                // Grouped by semester (الفصل 3/4/5/6) for the UI — mirrors Saudi's block_1/2/3 pattern.
+                // Duplicate subject names within a semester are intentional (separate course codes).
+                scientific_semesters = BahrainiConstants.ScientificSemesters,
+                literary = BahrainiConstants.LiteraryTrackSubjects,
+                max_mark_per_subject = SingleYearFixedTotalConstants.MaxMarkPerSubject,
+                scientific_track_name = BahrainiConstants.ScientificTrack,
+                literary_track_name = BahrainiConstants.LiteraryTrack,
+                vocational_track_name = BahrainiConstants.VocationalTrack,
+                excluded_subjects = new[]
+                {
+                    "التربية الإسلامية والدينية", "التربية للمواطنة", "المقررات الإثرائية",
+                    "التربية الرياضية", "التربية الفنية", "التربية الأسرية",
+                    "القراءة عربي إنجليزي", "الثقافة الشعبية", "خدمة المجتمع"
+                }
+            };
+
+            return Ok(bahrainiConfig);
         }
     }
 }

@@ -663,6 +663,73 @@
           <p class="section-desc">هذه النتيجة تقديرية ويجب تأكيدها رسمياً من مكتب تنسيق القبول بالجامعات والمعاهد المصرية.</p>
         </div>
       </div>
+
+      <!-- Bahraini Certificate Calculator Container -->
+      <div id="bahraini-grades-container" style="display: none;">
+        <div id="bahraini-track-blocked-alert" class="alert alert-danger" style="display: none; margin-bottom: 1rem;">
+          قائمة مواد هذا المسار غير معتمدة بعد في النظام — يرجى مراجعة مكتب تنسيق القبول بالجامعات والمعاهد المصرية.
+        </div>
+
+        <div id="bahraini-grade-block" style="display: none;">
+          <div class="alert alert-warning" style="margin-bottom: 1.25rem; line-height: 1.9;">
+            <strong>⚠️ تنبيه مهم قبل إدخال الدرجات:</strong>
+            <p style="margin: 0.5rem 0 0.75rem;">المواد التالية محذوفة من حساب التنسيق المصري ولا تدخل في المجموع:</p>
+            <ul style="margin: 0 0 0.75rem; padding-inline-start: 1.25rem;">
+              <li>التربية الإسلامية والدينية (رمز: دين)</li>
+              <li>التربية للمواطنة (رمز: وطن)</li>
+              <li>المقررات الإثرائية (أي مادة نوعها إثرائي)</li>
+              <li>التربية الرياضية (رمز: بدن)</li>
+              <li>التربية الفنية (رمز: فنو)</li>
+              <li>التربية الأسرية (رمز: أسر)</li>
+              <li>القراءة عربي إنجليزي (رمز: قرأ)</li>
+              <li>الثقافة الشعبية (رمز: شعب)</li>
+              <li>خدمة المجتمع (رمز: مجت)</li>
+              <li>أي مادة مكتوب بجانبها "غير محتسب" في الشهادة</li>
+              <li>أي مادة مكتوب بجانبها "تعلم ذاتي" في الشهادة</li>
+            </ul>
+            <p style="margin: 0 0 0.35rem;"><strong>قواعد مهمة للإدخال:</strong></p>
+            <ul style="margin: 0; padding-inline-start: 1.25rem;">
+              <li>المطلوب فقط درجات آخر سنتين = الصف الثاني الثانوي (فصل 3+4) والصف الثالث الثانوي (فصل 5+6)</li>
+              <li>إذا دخلت تحسيناً في أي مادة (فصل 7 أو 8)، أدخل آخر درجة حصلت عليها في تلك المادة وليس أعلى درجة</li>
+              <li>مادة تقنية المعلومات تحتسب من 100 درجة فقط بغض النظر عن درجتها الكاملة في الشهادة</li>
+            </ul>
+          </div>
+
+          <div class="table-responsive">
+            <table class="grades-table">
+              <thead>
+                <tr>
+                  <th class="col-num">#</th>
+                  <th class="col-subject">اسم المادة</th>
+                  <th class="col-grade">الدرجة</th>
+                  <th class="col-weight">الدرجة العظمى</th>
+                </tr>
+              </thead>
+              <tbody id="bahraini-subjects-body">
+                <!-- Dynamically populated: 7 (علمي) or 8 (أدبي) subjects, depending on the selected track -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="result-box" style="margin-top: 1.5rem;">
+            <div class="result-row-flex">
+              <div class="result-flex-item">
+                <div class="result-title-label">مجموع درجاتك:</div>
+                <div class="result-value" id="bahraini-final-total">0.00 / 0</div>
+              </div>
+              <div class="result-flex-item" style="border-right: 1px solid var(--border-color); padding-right: 1.5rem;">
+                <div class="result-title-label">نسبتك المئوية:</div>
+                <div class="result-value" id="bahraini-percentage">0.00%</div>
+              </div>
+              <div class="result-flex-item" style="border-right: 1px solid var(--border-color); padding-right: 1.5rem;">
+                <div class="result-title-label">مجموعك الاعتباري للتنسيق المصري:</div>
+                <div class="result-value" id="bahraini-equivalent-total">0.00 / 410</div>
+              </div>
+            </div>
+          </div>
+          <p class="section-desc">هذا الحساب تقريبي واستشاري، يرجى التأكد من الجهات الرسمية.</p>
+        </div>
+      </div>
     </section>
 
     <!-- Form Action Buttons -->

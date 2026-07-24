@@ -51,6 +51,9 @@ namespace StudentRegistry.Application.DTOs
 
         // Yemeni specific fields
         public YemeniDataCreateDto? YemeniData { get; set; }
+
+        // Bahraini specific fields
+        public BahrainiDataCreateDto? BahrainiData { get; set; }
     }
 
     public class KuwaitiDataCreateDto
@@ -95,7 +98,14 @@ namespace StudentRegistry.Application.DTOs
         public List<SingleYearSubjectMarkCreateDto>? Subjects { get; set; }
     }
 
-    // Shared by Qatari, Omani and Yemeni (all single-year, fixed-100-per-subject certificates).
+    public class BahrainiDataCreateDto
+    {
+        // Subject list varies by Track (علمي: 7 subjects / أدبي: 8 subjects) — max mark is fixed
+        // server-side (§SingleYearFixedTotalConstants), never client-supplied.
+        public List<SingleYearSubjectMarkCreateDto>? Subjects { get; set; }
+    }
+
+    // Shared by Qatari, Omani, Yemeni and Bahraini (all single-year, fixed-100-per-subject certificates).
     public class SingleYearSubjectMarkCreateDto
     {
         public string SubjectName { get; set; } = string.Empty;
@@ -160,6 +170,8 @@ namespace StudentRegistry.Application.DTOs
         public List<SingleYearSubjectMarkResponseDto>? OmaniGrades { get; set; }
         public YemeniTotalsResponseDto? YemeniTotals { get; set; }
         public List<SingleYearSubjectMarkResponseDto>? YemeniGrades { get; set; }
+        public BahrainiTotalsResponseDto? BahrainiTotals { get; set; }
+        public List<SingleYearSubjectMarkResponseDto>? BahrainiGrades { get; set; }
     }
 
     public class KuwaitiTotalsResponseDto
@@ -208,7 +220,17 @@ namespace StudentRegistry.Application.DTOs
         public string Disclaimer { get; set; } = string.Empty;
     }
 
-    // Shared by Qatari, Omani and Yemeni grade lists.
+    public class BahrainiTotalsResponseDto
+    {
+        public string Track { get; set; } = string.Empty;
+        public decimal FinalTotal { get; set; }
+        public decimal TotalMax { get; set; }   // 700 (علمي) or 800 (أدبي)
+        public decimal Percentage { get; set; }
+        public decimal EquivalentTotal { get; set; }   // out of 410
+        public string Disclaimer { get; set; } = string.Empty;
+    }
+
+    // Shared by Qatari, Omani, Yemeni and Bahraini grade lists.
     public class SingleYearSubjectMarkResponseDto
     {
         public string SubjectName { get; set; } = string.Empty;
